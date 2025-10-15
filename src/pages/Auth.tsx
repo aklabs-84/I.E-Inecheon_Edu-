@@ -24,6 +24,8 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordValidation, setPasswordValidation] = useState<PasswordValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [showPrivacyAgreement, setShowPrivacyAgreement] = useState(false);
+  const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -100,12 +102,108 @@ const Auth = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto">
+        <div className="max-w-2xl mx-auto">
           <Card>
             <CardHeader>
-              <CardTitle>{mode === "login" ? "로그인" : "회원가입"}</CardTitle>
+              <CardTitle>{mode === "login" ? "로그인" : showPrivacyAgreement ? "개인정보 수집 및 이용 동의" : "회원가입"}</CardTitle>
             </CardHeader>
             <CardContent>
+              {mode === "signup" && !showPrivacyAgreement ? (
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 space-y-4">
+                    <h3 className="text-lg font-semibold text-center mb-4">📝 개인정보 수집 및 이용 동의서</h3>
+                    
+                    <div className="text-sm text-gray-700 space-y-3 leading-relaxed">
+                      <p>
+                        인천에듀는 「개인정보 보호법」 등 관련 법령에 따라 교육신청 및 회원관리 업무를 위하여 아래와 같이 개인정보를 수집·이용합니다. 내용을 자세히 읽으신 후 동의 여부를 선택해주시기 바랍니다.
+                      </p>
+                      
+                      <div>
+                        <h4 className="font-semibold text-gray-800 mb-2">1. 수집하는 개인정보 항목</h4>
+                        <p>필수항목: 이름, 이메일 주소</p>
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-semibold text-gray-800 mb-2">2. 개인정보 수집 및 이용 목적</h4>
+                        <ul className="list-disc list-inside space-y-1">
+                          <li>교육 신청 및 관리</li>
+                          <li>교육 관련 안내, 공지사항 전달</li>
+                          <li>본인 확인 및 신청 내역 확인</li>
+                        </ul>
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-semibold text-gray-800 mb-2">3. 처리 목적 외 이용 및 제3자 제공 없음</h4>
+                        <p>인천에듀는 위 목적 외에 개인정보를 이용하거나 제3자에게 제공하지 않습니다.</p>
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-semibold text-gray-800 mb-2">4. 개인정보 보유 및 이용기간</h4>
+                        <p>수집된 개인정보는 회원 탈퇴 또는 최종 이용일로부터 3년간 보관되며, 보관기간 경과 시 지체 없이 안전하게 파기합니다. 단, 관계법령에 의해 보존할 필요가 있는 경우 해당 법령에 따릅니다.</p>
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-semibold text-gray-800 mb-2">5. 동의 거부 권리 및 불이익 안내</h4>
+                        <p>귀하는 개인정보 수집 및 이용에 대한 동의를 거부할 권리가 있습니다. 다만, 동의하지 않으실 경우 교육 신청이 제한될 수 있습니다.</p>
+                      </div>
+                      
+                      <div className="mt-6 pt-4 border-t border-blue-200">
+                        <p className="text-center text-gray-800 font-medium mb-4">
+                          위 내용을 충분히 이해하였으며, 개인정보 수집 및 이용에 동의합니다.
+                        </p>
+                        
+                        <div className="flex justify-center space-x-6">
+                          <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="privacy_agreement"
+                              value="agree"
+                              checked={privacyAgreed === true}
+                              onChange={() => setPrivacyAgreed(true)}
+                              className="w-4 h-4 text-blue-600"
+                            />
+                            <span className="text-sm">동의함</span>
+                          </label>
+                          <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="privacy_agreement"
+                              value="disagree"
+                              checked={privacyAgreed === false}
+                              onChange={() => setPrivacyAgreed(false)}
+                              className="w-4 h-4 text-blue-600"
+                            />
+                            <span className="text-sm">동의하지 않음</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-4">
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      className="flex-1" 
+                      onClick={() => setMode("login")}
+                    >
+                      취소
+                    </Button>
+                    <Button 
+                      type="button"
+                      className="flex-1" 
+                      disabled={!privacyAgreed}
+                      onClick={() => {
+                        if (privacyAgreed) {
+                          setShowPrivacyAgreement(true);
+                        }
+                      }}
+                    >
+                      다음
+                    </Button>
+                  </div>
+                </div>
+              ) : (
               <form onSubmit={onSubmit} className="space-y-4">
                 {mode === "signup" && (
                   <>
@@ -199,27 +297,58 @@ const Auth = () => {
                     </div>
                   )}
                 </div>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={loading || (mode === "signup" && (!passwordValidation?.isValid || isValidating))}
-                >
-                  {loading ? "처리 중..." : mode === "login" ? "로그인" : "회원가입"}
-                </Button>
-              </form>
-              <div className="mt-4 text-sm text-muted-foreground">
                 {mode === "login" ? (
-                  <span>
-                    계정이 없으신가요? {" "}
-                    <button className="text-primary" onClick={() => setMode("signup")}>회원가입</button>
-                  </span>
+                  <>
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={loading}
+                    >
+                      {loading ? "처리 중..." : "로그인"}
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      className="w-full" 
+                      onClick={() => setMode("signup")}
+                    >
+                      회원가입
+                    </Button>
+                  </>
                 ) : (
-                  <span>
-                    이미 계정이 있으신가요? {" "}
-                    <button className="text-primary" onClick={() => setMode("login")}>로그인</button>
-                  </span>
+                  <>
+                    <div className="flex justify-between items-center mb-4">
+                      <Button 
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowPrivacyAgreement(false);
+                          setPrivacyAgreed(false);
+                        }}
+                      >
+                        ← 뒤로
+                      </Button>
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={loading || (!passwordValidation?.isValid || isValidating)}
+                    >
+                      {loading ? "처리 중..." : "회원가입"}
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      className="w-full" 
+                      onClick={() => setMode("login")}
+                    >
+                      로그인으로 돌아가기
+                    </Button>
+                  </>
                 )}
-              </div>
+              </form>
+              )}
               <div className="mt-6 text-center">
                 <Link to="/" className="text-sm text-primary">
                   홈으로 돌아가기
