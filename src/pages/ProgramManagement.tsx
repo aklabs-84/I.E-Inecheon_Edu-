@@ -143,6 +143,10 @@ const ProgramManagement = () => {
               <Users className="h-4 w-4" />
               신청자 관리
             </TabsTrigger>
+            <TabsTrigger value="consent" className="flex items-center gap-2">
+              <Scroll className="h-4 w-4" />
+              동의서
+            </TabsTrigger>
             <TabsTrigger value="attendance" className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               출석부
@@ -151,10 +155,7 @@ const ProgramManagement = () => {
               <FileText className="h-4 w-4" />
               설문지
             </TabsTrigger>
-            <TabsTrigger value="consent" className="flex items-center gap-2">
-              <Scroll className="h-4 w-4" />
-              동의서
-            </TabsTrigger>
+            
           </TabsList>
 
           <TabsContent value="applications" className="space-y-6">

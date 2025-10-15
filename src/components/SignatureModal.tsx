@@ -33,6 +33,17 @@ export const SignatureModal = ({
 
     let disposed = false;
 
+    // ESC 키 이벤트 핸들러
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !uploading) {
+        event.preventDefault();
+        handleClose();
+      }
+    };
+
+    // ESC 키 이벤트 리스너 추가
+    document.addEventListener('keydown', handleKeyDown);
+
     (async () => {
       try {
         const fabric = await import("fabric");
@@ -76,6 +87,9 @@ export const SignatureModal = ({
 
     return () => {
       disposed = true;
+      // ESC 키 이벤트 리스너 제거
+      document.removeEventListener('keydown', handleKeyDown);
+      
       if (fabricRef.current) {
         fabricRef.current.dispose();
         fabricRef.current = null;
@@ -87,11 +101,16 @@ export const SignatureModal = ({
   const handleClear = () => {
     const canvas = fabricRef.current;
     if (!canvas) return;
-    canvas.clear();
-    canvas.setBackgroundColor("#ffffff", () => canvas.renderAll());
-    setHasSignature(false);
-    // 드로잉모드 유지
-    canvas.isDrawingMode = true;
+    
+    try {
+      canvas.clear();
+      canvas.setBackgroundColor("#ffffff", () => canvas.renderAll());
+      setHasSignature(false);
+      // 드로잉모드 유지
+      canvas.isDrawingMode = true;
+    } catch (error) {
+      console.error("캔버스 클리어 중 오류:", error);
+    }
   };
 
   // 서명을 이미지 파일로 업로드하는 함수
@@ -164,14 +183,33 @@ export const SignatureModal = ({
   };
 
   const handleClose = () => {
-    handleClear();
+    // 업로드 중이면 취소할 수 없음
+    if (uploading) {
+      toast.warning("서명 저장 중입니다. 잠시만 기다려주세요.");
+      return;
+    }
+    
+    // 캔버스가 존재할 때만 클리어 시도
+    if (fabricRef.current && hasSignature) {
+      handleClear();
+    }
+    
+    // 서명 상태 초기화
+    setHasSignature(false);
+    
+    // 모달 닫기
     onClose();
   };
 
   return (
     <Dialog
       open={isOpen}
-      onOpenChange={(open) => { if (!open) handleClose(); }} // ✅ 열릴 때는 닫지 않기
+      onOpenChange={(open) => { 
+        // 모달이 닫힐 때 (X버튼 클릭 등)
+        if (!open && !uploading) {
+          handleClose();
+        }
+      }}
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
