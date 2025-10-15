@@ -48,7 +48,7 @@ const ProgramCard = ({
   const isApplicationOpen = status === "모집중" && currentApplicants < capacity;
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 overflow-hidden border-0 shadow-md bg-gradient-to-br from-card to-card/50">
+    <Card className="group hover:shadow-lg transition-all duration-300 overflow-hidden border-0 shadow-md bg-gradient-to-br from-card to-card/50 flex flex-col h-full">
       {/* Image */}
       <div className="relative h-48 overflow-hidden bg-gradient-to-br from-accent to-primary/10">
         {imageUrl ? (
@@ -79,52 +79,54 @@ const ProgramCard = ({
         </div>
       </div>
 
-      <CardHeader className="pb-3">
-        <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
-          {title}
-        </h3>
-        <p className="text-muted-foreground text-sm line-clamp-2 mt-1">
-          {description}
-        </p>
-      </CardHeader>
+      <div className="flex flex-col flex-1">
+        <CardHeader className="pb-3 flex-shrink-0">
+          <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
+            {title}
+          </h3>
+          <p className="text-muted-foreground text-sm line-clamp-3 mt-1 h-16 overflow-hidden">
+            {description}
+          </p>
+        </CardHeader>
 
-      <CardContent className="space-y-3 pb-4">
-        {/* Location */}
-        <div className="flex items-center text-sm text-muted-foreground">
-          <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-          <span>{region}</span>
-        </div>
+        <CardContent className="space-y-3 pb-4 flex-1">
+          {/* Location */}
+          <div className="flex items-center text-sm text-muted-foreground">
+            <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
+            <span>{region}</span>
+          </div>
 
-        {/* Date */}
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
-          <span>{startDate} ~ {endDate}</span>
-        </div>
+          {/* Date */}
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
+            <span>{startDate} ~ {endDate}</span>
+          </div>
 
-        {/* Capacity */}
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Users className="w-4 h-4 mr-2 flex-shrink-0" />
-          <span>{currentApplicants}/{capacity}명</span>
-          <div className="ml-auto">
-            <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-300"
-                style={{ width: `${(currentApplicants / capacity) * 100}%` }}
-              />
+          {/* Capacity */}
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Users className="w-4 h-4 mr-2 flex-shrink-0" />
+            <span>{currentApplicants}/{capacity}명</span>
+            <div className="ml-auto">
+              <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{ width: `${(currentApplicants / capacity) * 100}%` }}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </CardContent>
+        </CardContent>
 
-      <CardFooter>
-        <Button 
-          className="w-full" 
-          onClick={() => navigate(`/programs/${id}`)}
-          variant="default"
-        >
-          자세히 보기
-        </Button>
-      </CardFooter>
+        <CardFooter className="mt-auto">
+          <Button 
+            className="w-full" 
+            onClick={() => navigate(`/programs/${id}`)}
+            variant="default"
+          >
+            자세히 보기
+          </Button>
+        </CardFooter>
+      </div>
     </Card>
   );
 };

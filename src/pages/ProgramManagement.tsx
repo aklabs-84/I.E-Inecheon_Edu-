@@ -5,8 +5,8 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, Calendar, FileText, Scroll, CheckCircle } from "lucide-react";
-import { usePrograms, useCompleteProgram } from "@/hooks/usePrograms";
+import { ArrowLeft, Users, Calendar, FileText, Scroll } from "lucide-react";
+import { usePrograms } from "@/hooks/usePrograms";
 import ApplicationsList from "@/components/ApplicationsList";
 import { AttendanceTable } from "@/components/AttendanceTable";
 import { AttendanceStats } from "@/components/AttendanceStats";
@@ -20,7 +20,6 @@ const ProgramManagement = () => {
   
   const { data: programs = [] } = usePrograms(true);
   const program = programs.find(p => p.id === programId);
-  const completeProgram = useCompleteProgram();
 
   useEffect(() => {
     if (program) {
@@ -29,14 +28,6 @@ const ProgramManagement = () => {
       document.title = "프로그램 관리 - 인천 Connect Hub";
     }
   }, [program]);
-
-  const handleCompleteProgram = () => {
-    if (window.confirm("정말로 이 프로그램을 완료 처리하시겠습니까?")) {
-      completeProgram.mutate(programId);
-    }
-  };
-
-  const isCompleted = program?.status === 'completed';
                   `${new Date(program.start_at).toLocaleDateString('ko-KR', {
                     year: 'numeric',
                     month: 'short',
@@ -88,17 +79,6 @@ const ProgramManagement = () => {
               <h1 className="text-3xl font-bold text-foreground">{program.title}</h1>
               <p className="text-muted-foreground mt-1">{program.description}</p>
             </div>
-            {!isCompleted && (
-              <Button 
-                onClick={handleCompleteProgram}
-                variant="outline"
-                className="flex items-center gap-2"
-                disabled={completeProgram.isPending}
-              >
-                <CheckCircle className="h-4 w-4" />
-                프로그램 완료
-              </Button>
-            )}
           </div>
           
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -127,7 +107,7 @@ const ProgramManagement = () => {
                 "일정 미정"
               )}
             </span>
-            {isCompleted && (
+            {program?.status === 'completed' && (
               <>
                 <span>•</span>
                 <span className="text-green-600 font-medium">완료됨</span>

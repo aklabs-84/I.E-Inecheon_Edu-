@@ -182,7 +182,7 @@ const Home = () => {
             </Button>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
             {programsLoading ? (
               <div className="col-span-full text-center text-muted-foreground">
                 프로그램을 불러오는 중...

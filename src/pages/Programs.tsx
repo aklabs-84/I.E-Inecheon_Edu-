@@ -319,7 +319,7 @@ const Programs = () => {
         </div>
 
         {/* Programs Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 items-stretch">
           {filteredPrograms.length === 0 ? (
             <div className="col-span-full text-center py-12 text-muted-foreground">
               {transformedPrograms.length === 0 
