@@ -1,9 +1,10 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { format, eachDayOfInterval, parseISO, isWeekend } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Calendar, Check, X, Clock, User, Download, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { exportAttendanceXLSX } from "@/utils/excelExport";
+import { exportAttendanceSummaryXLSX } from "@/utils/attendanceExcelExport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +72,28 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
       return [];
     }
   }, [currentProgram]);
+
+  // 실제 출석 체크된 기록 수 계산 (미체크 제외)
+  const actualAttendanceCount = useMemo(() => {
+    // 실제 출석/결석/지각으로 체크된 기록만 카운트
+    return allAttendanceRecords.filter(record => 
+      record.status === "present" || record.status === "absent" || record.status === "late"
+    ).length;
+  }, [allAttendanceRecords]);
+
+  // 첫 수업일을 기본 선택 날짜로 설정
+  useEffect(() => {
+    if (availableDates.length > 0) {
+      const firstClassDate = format(availableDates[0], "yyyy-MM-dd");
+      const today = format(new Date(), "yyyy-MM-dd");
+      
+      // 오늘 날짜가 수업 날짜에 포함되어 있으면 오늘을, 아니면 첫 수업일을 선택
+      const isValidDate = availableDates.some(date => format(date, "yyyy-MM-dd") === today);
+      if (!isValidDate) {
+        setSelectedDate(firstClassDate);
+      }
+    }
+  }, [availableDates]);
 
   // 승인된 신청자만 필터링
   const approvedApplicants = applications.filter(app => app.status === "approved");
@@ -187,6 +210,57 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
     }
   };
 
+  const handleExportAttendanceSummary = async () => {
+    setIsGeneratingExcel(true);
+    
+    try {
+      // 출석 요약 데이터 구성
+      const studentsData = approvedApplicants.map(application => {
+        const profile = application.profiles;
+        
+        // 해당 학생의 모든 출석 기록
+        const studentAttendance = availableDates.map(date => {
+          const dateStr = format(date, "yyyy-MM-dd");
+          const record = allAttendanceRecords.find(r => 
+            r.user_id === application.user_id && r.attendance_date === dateStr
+          );
+          return {
+            date: dateStr,
+            status: record?.status || null
+          };
+        });
+
+        // 출석률 계산 (체크된 날짜만 대상으로)
+        const checkedDays = studentAttendance.filter(a => a.status !== null);
+        const presentDays = checkedDays.filter(a => a.status === "present" || a.status === "late").length;
+        const attendanceRate = checkedDays.length > 0 ? (presentDays / checkedDays.length) * 100 : 0;
+
+        return {
+          id: application.user_id,
+          name: profile?.name || '이름 없음',
+          nickname: profile?.nickname || '-',
+          region: profile?.region || '-',
+          attendance: studentAttendance,
+          attendanceRate
+        };
+      });
+
+      await exportAttendanceSummaryXLSX({
+        programTitle,
+        students: studentsData,
+        programDates: availableDates,
+      });
+      
+      toast.success("출석 현황 엑셀 파일이 성공적으로 생성되었습니다!");
+      
+    } catch (error) {
+      console.error('엑셀 생성 오류:', error);
+      toast.error('엑셀 생성 중 오류가 발생했습니다.');
+    } finally {
+      setIsGeneratingExcel(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -234,7 +308,7 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
                 className="flex items-center gap-2"
               >
                 <Download className="h-4 w-4" />
-                {isGeneratingExcel ? "엑셀 생성중..." : "엑셀 출력"}
+                {isGeneratingExcel ? "엑셀 생성중..." : "일일 출석부 엑셀"}
               </Button>
             </div>
         <style>
@@ -327,9 +401,22 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
           </TabsContent>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart3 className="h-5 w-5" />
-              <h3 className="text-lg font-semibold">전체 출석 현황</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                <h3 className="text-lg font-semibold">전체 출석 현황</h3>
+              </div>
+              
+              <Button
+                onClick={handleExportAttendanceSummary}
+                disabled={isGeneratingExcel || approvedApplicants.length === 0}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                {isGeneratingExcel ? "엑셀 생성중..." : "전체 현황 엑셀"}
+              </Button>
             </div>
 
             {availableDates.length === 0 ? (
@@ -355,7 +442,7 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
                   <Card>
                     <CardContent className="p-4">
                       <div className="text-sm font-medium text-muted-foreground">총 출석 기록</div>
-                      <div className="text-2xl font-bold">{allAttendanceRecords.length}건</div>
+                      <div className="text-2xl font-bold">{actualAttendanceCount}건</div>
                     </CardContent>
                   </Card>
                 </div>
