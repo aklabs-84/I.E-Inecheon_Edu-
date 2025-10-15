@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
-import { format } from "date-fns";
+import { useState, useRef, useMemo } from "react";
+import { format, eachDayOfInterval, parseISO, isWeekend } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Calendar, Check, X, Clock, User, Download } from "lucide-react";
+import { Calendar, Check, X, Clock, User, Download, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { exportAttendanceXLSX } from "@/utils/excelExport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,9 +24,11 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SignatureModal } from "./SignatureModal";
 import { useProgramApplicationsDetail } from "@/hooks/useApplications";
 import { useProgramAttendance, useMarkAttendance } from "@/hooks/useAttendance";
+import { usePrograms } from "@/hooks/usePrograms";
 
 interface AttendanceTableProps {
   programId: number;
@@ -35,6 +37,7 @@ interface AttendanceTableProps {
 
 export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProps) => {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [activeTab, setActiveTab] = useState("daily");
   const [signatureModal, setSignatureModal] = useState<{
     isOpen: boolean;
     userId?: string;
@@ -43,9 +46,31 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
   const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
 
+  const { data: programs = [] } = usePrograms();
   const { data: applications = [] } = useProgramApplicationsDetail(programId);
   const { data: attendanceRecords = [] } = useProgramAttendance(programId, selectedDate);
+  const { data: allAttendanceRecords = [] } = useProgramAttendance(programId); // 전체 출석 기록
   const markAttendance = useMarkAttendance();
+
+  // 현재 프로그램 정보
+  const currentProgram = programs.find(p => p.id === programId);
+
+  // 프로그램 기간 중 출석 가능한 날짜들 계산 (주말 제외)
+  const availableDates = useMemo(() => {
+    if (!currentProgram?.start_at || !currentProgram?.end_at) return [];
+    
+    try {
+      const startDate = parseISO(currentProgram.start_at);
+      const endDate = parseISO(currentProgram.end_at);
+      
+      const allDates = eachDayOfInterval({ start: startDate, end: endDate });
+      // 주말 제외 (필요시 주말도 포함하려면 이 필터 제거)
+      return allDates.filter(date => !isWeekend(date));
+    } catch (error) {
+      console.error('날짜 파싱 오류:', error);
+      return [];
+    }
+  }, [currentProgram]);
 
   // 승인된 신청자만 필터링
   const approvedApplicants = applications.filter(app => app.status === "approved");
@@ -97,6 +122,19 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
         return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100"><Clock className="h-3 w-3 mr-1" />지각</Badge>;
       default:
         return <Badge variant="secondary">미체크</Badge>;
+    }
+  };
+
+  const getStatusBadgeSmall = (status: string) => {
+    switch (status) {
+      case "present":
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-xs">출</Badge>;
+      case "absent":
+        return <Badge variant="destructive" className="text-xs">결</Badge>;
+      case "late":
+        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 text-xs">지</Badge>;
+      default:
+        return <Badge variant="secondary" className="text-xs">-</Badge>;
     }
   };
 
@@ -156,38 +194,49 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
           <Calendar className="h-5 w-5" />
           출석부 - {programTitle}
         </CardTitle>
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="attendance-date">출석 날짜:</Label>
-              <Input
-                id="attendance-date"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-auto"
-              />
-            </div>
-            <div className="text-sm text-muted-foreground">
-              총 {approvedApplicants.length}명 등록
-            </div>
-          </div>
-          
-          <Button
-            onClick={handleExportToExcel}
-            disabled={isGeneratingExcel || approvedApplicants.length === 0}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            {isGeneratingExcel ? "엑셀 생성중..." : "엑셀 출력"}
-          </Button>
-        </div>
       </CardHeader>
 
       <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="daily">일별 출석 관리</TabsTrigger>
+            <TabsTrigger value="overview">전체 출석 현황</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="daily" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="attendance-date">출석 날짜:</Label>
+                  <Select value={selectedDate} onValueChange={setSelectedDate}>
+                    <SelectTrigger className="w-auto min-w-[200px]">
+                      <SelectValue placeholder="날짜를 선택하세요" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableDates.map((date) => (
+                        <SelectItem key={format(date, "yyyy-MM-dd")} value={format(date, "yyyy-MM-dd")}>
+                          {format(date, "yyyy년 M월 d일 (EEEE)", { locale: ko })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  총 {approvedApplicants.length}명 등록
+                </div>
+              </div>
+              
+              <Button
+                onClick={handleExportToExcel}
+                disabled={isGeneratingExcel || approvedApplicants.length === 0}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                {isGeneratingExcel ? "엑셀 생성중..." : "엑셀 출력"}
+              </Button>
+            </div>
         <style>
           {`
             @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400&display=swap');
@@ -275,6 +324,107 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
             </Table>
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="overview" className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="h-5 w-5" />
+              <h3 className="text-lg font-semibold">전체 출석 현황</h3>
+            </div>
+
+            {availableDates.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg mb-2">프로그램 일정이 설정되지 않았습니다</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-sm font-medium text-muted-foreground">전체 수업일</div>
+                      <div className="text-2xl font-bold">{availableDates.length}일</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-sm font-medium text-muted-foreground">등록 학생</div>
+                      <div className="text-2xl font-bold">{approvedApplicants.length}명</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-sm font-medium text-muted-foreground">총 출석 기록</div>
+                      <div className="text-2xl font-bold">{allAttendanceRecords.length}건</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-16">번호</TableHead>
+                      <TableHead>이름</TableHead>
+                      <TableHead>닉네임</TableHead>
+                      <TableHead>지역</TableHead>
+                      {availableDates.map((date) => (
+                        <TableHead key={format(date, "yyyy-MM-dd")} className="text-center w-20">
+                          {format(date, "M/d", { locale: ko })}
+                        </TableHead>
+                      ))}
+                      <TableHead className="text-center">출석률</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {approvedApplicants.map((application, index) => {
+                      const profile = application.profiles;
+                      const userAttendanceRecords = allAttendanceRecords.filter(
+                        record => record.user_id === application.user_id
+                      );
+                      
+                      // 출석률 계산
+                      const presentCount = userAttendanceRecords.filter(r => r.status === 'present').length;
+                      const attendanceRate = availableDates.length > 0 
+                        ? Math.round((presentCount / availableDates.length) * 100) 
+                        : 0;
+                      
+                      return (
+                        <TableRow key={application.id}>
+                          <TableCell className="font-medium">{index + 1}</TableCell>
+                          <TableCell>{profile?.name || "이름 없음"}</TableCell>
+                          <TableCell>{profile?.nickname || "-"}</TableCell>
+                          <TableCell>{profile?.region || "-"}</TableCell>
+                          {availableDates.map((date) => {
+                            const dateStr = format(date, "yyyy-MM-dd");
+                            const record = userAttendanceRecords.find(
+                              r => r.attendance_date === dateStr
+                            );
+                            
+                            return (
+                              <TableCell key={dateStr} className="text-center">
+                                {record ? getStatusBadgeSmall(record.status) : (
+                                  <Badge variant="secondary" className="text-xs">-</Badge>
+                                )}
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell className="text-center">
+                            <Badge 
+                              variant={attendanceRate >= 80 ? "default" : attendanceRate >= 60 ? "secondary" : "destructive"}
+                              className="text-xs"
+                            >
+                              {attendanceRate}%
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
 
       <SignatureModal
