@@ -24,6 +24,7 @@ export const ConsentResults = ({ consentForm, programTitle }: ConsentResultsProp
       await exportConsentXLSX({
         programTitle,
         consentTitle: consentForm.title,
+        consentContent: consentForm.content,
         submissions,
       });
       toast.success("엑셀 파일이 다운로드되었습니다.");

@@ -22,12 +22,14 @@ const urlToBase64 = async (url: string): Promise<string | null> => {
 interface ConsentExportData {
   programTitle: string;
   consentTitle: string;
+  consentContent?: string;
   submissions: ConsentSubmissionWithProfile[];
 }
 
 export const exportConsentXLSX = async ({
   programTitle,
   consentTitle,
+  consentContent,
   submissions
 }: ConsentExportData) => {
   try {
@@ -243,13 +245,13 @@ export const exportConsentXLSX = async ({
       
       try {
         const personalSheet = workbook.addWorksheet(sheetName);
-        await createIndividualConsentSheet(personalSheet, submission, programTitle, consentTitle);
+        await createIndividualConsentSheet(personalSheet, submission, programTitle, consentTitle, consentContent);
       } catch (error) {
         console.error(`개별 시트 생성 실패 (${personName}):`, error);
         // 시트 이름이 중복되거나 문제가 있을 경우 번호 추가
         const fallbackSheetName = `동의서_${index + 1}`;
         const personalSheet = workbook.addWorksheet(fallbackSheetName);
-        await createIndividualConsentSheet(personalSheet, submission, programTitle, consentTitle);
+        await createIndividualConsentSheet(personalSheet, submission, programTitle, consentTitle, consentContent);
       }
     }
 
@@ -270,7 +272,8 @@ const createIndividualConsentSheet = async (
   worksheet: ExcelJS.Worksheet, 
   submission: ConsentSubmissionWithProfile, 
   programTitle: string, 
-  consentTitle: string
+  consentTitle: string,
+  consentContent?: string
 ) => {
   // 페이지 설정
   worksheet.pageSetup = {
@@ -457,56 +460,72 @@ const createIndividualConsentSheet = async (
   worksheet.getRow(currentRow).height = 25;
   currentRow++;
 
-  // 수집 목적
-  const purposeLabel = worksheet.getCell(`A${currentRow}`);
-  purposeLabel.value = '수집 목적:';
-  purposeLabel.font = { name: '맑은 고딕', size: 11, bold: true };
-  purposeLabel.alignment = { horizontal: 'center', vertical: 'middle' };
-  purposeLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
-  purposeLabel.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+  if (consentContent) {
+    // 사용자 정의 동의서 내용 사용
+    worksheet.mergeCells(`A${currentRow}:H${currentRow + 3}`);
+    const contentCell = worksheet.getCell(`A${currentRow}`);
+    contentCell.value = consentContent;
+    contentCell.font = { name: '맑은 고딕', size: 11 };
+    contentCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+    contentCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+    worksheet.getRow(currentRow).height = 25;
+    worksheet.getRow(currentRow + 1).height = 25;
+    worksheet.getRow(currentRow + 2).height = 25;
+    worksheet.getRow(currentRow + 3).height = 25;
+    currentRow += 4;
+  } else {
+    // 기본 내용 사용
+    // 수집 목적
+    const purposeLabel = worksheet.getCell(`A${currentRow}`);
+    purposeLabel.value = '수집 목적:';
+    purposeLabel.font = { name: '맑은 고딕', size: 11, bold: true };
+    purposeLabel.alignment = { horizontal: 'center', vertical: 'middle' };
+    purposeLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
+    purposeLabel.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
 
-  worksheet.mergeCells(`B${currentRow}:H${currentRow}`);
-  const purposeValue = worksheet.getCell(`B${currentRow}`);
-  purposeValue.value = '프로그램 참여자 관리 및 서비스 제공';
-  purposeValue.font = { name: '맑은 고딕', size: 11 };
-  purposeValue.alignment = { horizontal: 'left', vertical: 'middle' };
-  purposeValue.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-  worksheet.getRow(currentRow).height = 25;
-  currentRow++;
+    worksheet.mergeCells(`B${currentRow}:H${currentRow}`);
+    const purposeValue = worksheet.getCell(`B${currentRow}`);
+    purposeValue.value = '프로그램 참여자 관리 및 서비스 제공';
+    purposeValue.font = { name: '맑은 고딕', size: 11 };
+    purposeValue.alignment = { horizontal: 'left', vertical: 'middle' };
+    purposeValue.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+    worksheet.getRow(currentRow).height = 25;
+    currentRow++;
 
-  // 수집 항목
-  const itemLabel = worksheet.getCell(`A${currentRow}`);
-  itemLabel.value = '수집 항목:';
-  itemLabel.font = { name: '맑은 고딕', size: 11, bold: true };
-  itemLabel.alignment = { horizontal: 'center', vertical: 'middle' };
-  itemLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
-  itemLabel.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+    // 수집 항목
+    const itemLabel = worksheet.getCell(`A${currentRow}`);
+    itemLabel.value = '수집 항목:';
+    itemLabel.font = { name: '맑은 고딕', size: 11, bold: true };
+    itemLabel.alignment = { horizontal: 'center', vertical: 'middle' };
+    itemLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
+    itemLabel.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
 
-  worksheet.mergeCells(`B${currentRow}:H${currentRow}`);
-  const itemValue = worksheet.getCell(`B${currentRow}`);
-  itemValue.value = '성명, 생년월일, 성별, 휴대폰 번호, 거주동명, 학교/기관';
-  itemValue.font = { name: '맑은 고딕', size: 11 };
-  itemValue.alignment = { horizontal: 'left', vertical: 'middle' };
-  itemValue.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-  worksheet.getRow(currentRow).height = 25;
-  currentRow++;
+    worksheet.mergeCells(`B${currentRow}:H${currentRow}`);
+    const itemValue = worksheet.getCell(`B${currentRow}`);
+    itemValue.value = '성명, 생년월일, 성별, 휴대폰 번호, 거주동명, 학교/기관';
+    itemValue.font = { name: '맑은 고딕', size: 11 };
+    itemValue.alignment = { horizontal: 'left', vertical: 'middle' };
+    itemValue.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+    worksheet.getRow(currentRow).height = 25;
+    currentRow++;
 
-  // 보유 기간
-  const periodLabel = worksheet.getCell(`A${currentRow}`);
-  periodLabel.value = '보유 기간:';
-  periodLabel.font = { name: '맑은 고딕', size: 11, bold: true };
-  periodLabel.alignment = { horizontal: 'center', vertical: 'middle' };
-  periodLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
-  periodLabel.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+    // 보유 기간
+    const periodLabel = worksheet.getCell(`A${currentRow}`);
+    periodLabel.value = '보유 기간:';
+    periodLabel.font = { name: '맑은 고딕', size: 11, bold: true };
+    periodLabel.alignment = { horizontal: 'center', vertical: 'middle' };
+    periodLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
+    periodLabel.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
 
-  worksheet.mergeCells(`B${currentRow}:H${currentRow}`);
-  const periodValue = worksheet.getCell(`B${currentRow}`);
-  periodValue.value = '프로그램 종료 후 1년';
-  periodValue.font = { name: '맑은 고딕', size: 11 };
-  periodValue.alignment = { horizontal: 'left', vertical: 'middle' };
-  periodValue.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-  worksheet.getRow(currentRow).height = 25;
-  currentRow++;
+    worksheet.mergeCells(`B${currentRow}:H${currentRow}`);
+    const periodValue = worksheet.getCell(`B${currentRow}`);
+    periodValue.value = '프로그램 종료 후 1년';
+    periodValue.font = { name: '맑은 고딕', size: 11 };
+    periodValue.alignment = { horizontal: 'left', vertical: 'middle' };
+    periodValue.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+    worksheet.getRow(currentRow).height = 25;
+    currentRow++;
+  }
 
   // 동의 거부권
   worksheet.mergeCells(`A${currentRow}:H${currentRow}`);

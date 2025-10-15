@@ -275,11 +275,15 @@ export const ConsentFormComponent = ({ consentForm, programTitle }: ConsentFormC
             {/* 개인정보 수집 및 활용 안내 */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="font-bold mb-2">개인정보 수집 및 활용 안내</h3>
-              <div className="text-sm space-y-1">
-                <p><strong>수집 목적:</strong> 프로그램 참여자 관리 및 서비스 제공</p>
-                <p><strong>수집 항목:</strong> 성명, 생년월일, 성별, 휴대폰 번호, 거주동명, 학교/기관</p>
-                <p><strong>보유 기간:</strong> 프로그램 종료 후 1년</p>
-                <p><strong>동의 거부권:</strong> 개인정보 수집에 동의하지 않을 권리가 있으며, 동의 거부 시 프로그램 참여가 제한될 수 있습니다.</p>
+              <div className="text-sm space-y-1 whitespace-pre-wrap">
+                {consentForm.content || (
+                  <>
+                    <p><strong>수집 목적:</strong> 프로그램 참여자 관리 및 서비스 제공</p>
+                    <p><strong>수집 항목:</strong> 성명, 생년월일, 성별, 휴대폰 번호, 거주동명, 학교/기관</p>
+                    <p><strong>보유 기간:</strong> 프로그램 종료 후 1년</p>
+                    <p><strong>동의 거부권:</strong> 개인정보 수집에 동의하지 않을 권리가 있으며, 동의 거부 시 프로그램 참여가 제한될 수 있습니다.</p>
+                  </>
+                )}
               </div>
 
               <div className="mt-4 space-y-2">
