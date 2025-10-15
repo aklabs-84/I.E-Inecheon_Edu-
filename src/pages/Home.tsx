@@ -36,9 +36,23 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    // 인기 프로그램 정렬 (신청자 수 기준)
+    // 현재 모집중인 프로그램 필터링 및 정렬 (신청자 수 기준)
     if (programs.length > 0) {
-      const sortedPrograms = [...programs]
+      const currentDate = new Date();
+      const recruitingPrograms = programs.filter(program => {
+        // 현재 날짜가 모집 기간 내에 있고 정원이 차지 않은 프로그램
+        const startDate = program.start_at ? new Date(program.start_at) : null;
+        const endDate = program.end_at ? new Date(program.end_at) : null;
+        const applicationCount = applicationCounts[program.id] || 0;
+        const capacity = program.capacity || 0;
+        
+        // 모집 기간 내에 있고 정원이 차지 않은 프로그램
+        return startDate && 
+               currentDate <= startDate && 
+               applicationCount < capacity;
+      });
+      
+      const sortedPrograms = recruitingPrograms
         .sort((a, b) => (applicationCounts[b.id] || 0) - (applicationCounts[a.id] || 0))
         .slice(0, 3);
       setPopularPrograms(sortedPrograms);
@@ -174,8 +188,8 @@ const Home = () => {
         <div className="container">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-bold mb-2">인기 프로그램</h2>
-              <p className="text-muted-foreground">지금 가장 관심받는 교육 프로그램을 만나보세요</p>
+              <h2 className="text-3xl font-bold mb-2">현재 모집중인 프로그램</h2>
+              <p className="text-muted-foreground">지금 신청 가능한 교육 프로그램을 만나보세요</p>
             </div>
             <Button variant="outline" className="hidden sm:flex" onClick={() => navigate('/programs')}>
               전체보기
@@ -188,25 +202,42 @@ const Home = () => {
                 프로그램을 불러오는 중...
               </div>
             ) : popularPrograms.length > 0 ? (
-              popularPrograms.map((program) => (
-                <ProgramCard 
-                  key={program.id} 
-                  id={program.id}
-                  title={program.title}
-                  category={program.category || "기타"}
-                  region={program.region || "전체"}
-                  startDate={program.start_at ? new Date(program.start_at).toLocaleDateString() : ""}
-                  endDate={program.end_at ? new Date(program.end_at).toLocaleDateString() : ""}
-                  capacity={program.capacity || 0}
-                  currentApplicants={applicationCounts[program.id] || 0}
-                  description={program.description || ""}
-                  status={new Date() > new Date(program.end_at || '') ? "마감" : "모집중"}
-                  imageUrl={program.image_url || ""}
-                />
-              ))
+              popularPrograms.map((program) => {
+                const currentDate = new Date();
+                const startDate = program.start_at ? new Date(program.start_at) : null;
+                const endDate = program.end_at ? new Date(program.end_at) : null;
+                const applicationCount = applicationCounts[program.id] || 0;
+                const capacity = program.capacity || 0;
+                
+                let status: "모집중" | "마감" | "진행중" | "완료" = "모집중";
+                if (endDate && currentDate > endDate) {
+                  status = "완료";
+                } else if (startDate && currentDate >= startDate && endDate && currentDate <= endDate) {
+                  status = "진행중";
+                } else if (applicationCount >= capacity) {
+                  status = "마감";
+                }
+                
+                return (
+                  <ProgramCard 
+                    key={program.id} 
+                    id={program.id}
+                    title={program.title}
+                    category={program.category || "기타"}
+                    region={program.region || "전체"}
+                    startDate={program.start_at ? new Date(program.start_at).toLocaleDateString() : ""}
+                    endDate={program.end_at ? new Date(program.end_at).toLocaleDateString() : ""}
+                    capacity={program.capacity || 0}
+                    currentApplicants={applicationCount}
+                    description={program.description || ""}
+                    status={status}
+                    imageUrl={program.image_url || ""}
+                  />
+                );
+              })
             ) : (
               <div className="col-span-full text-center text-muted-foreground">
-                등록된 프로그램이 없습니다.
+                현재 모집중인 프로그램이 없습니다.
               </div>
             )}
           </div>

@@ -40,8 +40,10 @@ const ProgramCard = ({
         return "destructive";
       case "진행중":
         return "secondary";
-      default:
+      case "완료":
         return "outline";
+      default:
+        return "secondary";
     }
   };
 
@@ -68,7 +70,14 @@ const ProgramCard = ({
           </div>
         )}
         <div className="absolute top-3 left-3">
-          <Badge variant={getStatusVariant(status)} className="font-medium">
+          <Badge 
+            variant={getStatusVariant(status)} 
+            className={`font-medium ${
+              status === "완료" 
+                ? "bg-gray-500 text-white border-gray-500" 
+                : ""
+            }`}
+          >
             {status}
           </Badge>
         </div>
