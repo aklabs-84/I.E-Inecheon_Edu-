@@ -105,8 +105,27 @@ const CommunityCard = ({
     }
   };
 
+  // 카드별 랜덤 배경색 생성 (은은한 그라데이션)
+  const getCardBackgroundClass = (id: number) => {
+    const backgroundOptions = [
+      "bg-gradient-to-br from-blue-50/50 to-indigo-50/50",
+      "bg-gradient-to-br from-green-50/50 to-emerald-50/50", 
+      "bg-gradient-to-br from-purple-50/50 to-pink-50/50",
+      "bg-gradient-to-br from-orange-50/50 to-red-50/50",
+      "bg-gradient-to-br from-cyan-50/50 to-blue-50/50",
+      "bg-gradient-to-br from-amber-50/50 to-yellow-50/50",
+      "bg-gradient-to-br from-rose-50/50 to-pink-50/50",
+      "bg-gradient-to-br from-teal-50/50 to-green-50/50",
+      "bg-gradient-to-br from-violet-50/50 to-purple-50/50",
+      "bg-gradient-to-br from-slate-50/50 to-gray-50/50"
+    ];
+    
+    // ID를 기반으로 일관된 색상 선택
+    return backgroundOptions[id % backgroundOptions.length];
+  };
+
   return (
-    <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group border-0 shadow-sm bg-gradient-to-br from-card to-card/80">
+    <Card className={`hover:shadow-md transition-all duration-200 cursor-pointer group border-0 shadow-sm ${getCardBackgroundClass(id)}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
