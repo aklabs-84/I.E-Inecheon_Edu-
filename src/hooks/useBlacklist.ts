@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
-import { sendBlacklistNotificationEmail, sendBlacklistRemovalEmail } from "@/utils/blacklistEmailService";
+import { sendBlacklistEmail, sendBlacklistRemovalEmail } from "@/utils/blacklistEmailService";
+import { BlacklistNotifications } from "@/utils/notifications";
 
 export interface BlacklistRecord {
   id: number;
@@ -28,6 +29,40 @@ export interface BlacklistRecord {
     name: string;
   };
 }
+
+// 사용자의 만료된 블랙리스트 레코드 정리
+export const useCleanupExpiredBlacklist = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (userId?: string) => {
+      const now = new Date().toISOString();
+      
+      // 특정 사용자 또는 모든 만료된 레코드 삭제
+      const query = (supabase as any)
+        .from("blacklist")
+        .delete()
+        .lt("blacklisted_until", now);
+
+      if (userId) {
+        query.eq("user_id", userId);
+      }
+
+      const { error } = await query;
+
+      if (error) {
+        console.error("Error cleaning up expired blacklist:", error);
+        throw error;
+      }
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["check-blacklist"] });
+      queryClient.invalidateQueries({ queryKey: ["blacklist-records"] });
+    },
+  });
+};
 
 // 사용자의 활성 블랙리스트 확인
 export const useCheckBlacklist = (userId?: string) => {
@@ -78,7 +113,26 @@ export const useAddToBlacklist = () => {
       programId?: number;
       reason?: string;
     }) => {
-      // 6개월 후 날짜 계산 (기존 3개월에서 연장)
+      // 1. 먼저 해당 사용자의 기존 비활성 블랙리스트 레코드들을 모두 삭제
+      await (supabase as any)
+        .from("blacklist")
+        .delete()
+        .eq("user_id", userId)
+        .eq("is_active", false);
+
+      // 2. 해당 사용자의 활성 블랙리스트가 있는지 확인
+      const { data: existingActive } = await (supabase as any)
+        .from("blacklist")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .single();
+
+      if (existingActive) {
+        throw new Error("이미 활성 블랙리스트에 등록된 사용자입니다.");
+      }
+
+      // 3. 새로운 블랙리스트 기록 생성 (6개월 후)
       const blacklistedUntil = new Date();
       blacklistedUntil.setMonth(blacklistedUntil.getMonth() + 6);
 
@@ -120,29 +174,28 @@ export const useAddToBlacklist = () => {
           .single();
 
         if (!profileError && userProfile?.email) {
-          const { data: programData } = await supabase
-            .from("programs")
-            .select("title")
-            .eq("id", (data as any).program_id!)
-            .single();
+          const emailResult = await sendBlacklistEmail(
+            userProfile.email,
+            userProfile.name || "참여자",
+            (data as any).reason,
+            (data as any).blacklisted_until
+          );
 
-          await sendBlacklistNotificationEmail({
-            userEmail: userProfile.email,
-            userName: userProfile.name || "참여자",
-            programTitle: programData?.title,
-            reason: (data as any).reason,
-            blacklistedUntil: (data as any).blacklisted_until,
-          });
+          // 향상된 알림 시스템 사용
+          BlacklistNotifications.addSuccess(
+            userProfile.name || "참여자", 
+            (data as any).reason
+          );
 
-          // 추가 알림 (브라우저 알림으로 이메일 발송 시뮬레이션)
-          toast.success(`${userProfile.name}님에게 블랙리스트 처리 알림이 발송되었습니다.`, {
-            duration: 5000,
-            description: `이메일: ${userProfile.email}`,
-          });
+          if (emailResult.success) {
+            BlacklistNotifications.emailSent(userProfile.email, 'blacklist');
+          } else {
+            BlacklistNotifications.emailFailed(emailResult.error || "알 수 없는 오류");
+          }
         }
       } catch (emailError) {
         console.error("이메일 발송 실패:", emailError);
-        toast.warning("블랙리스트 처리는 완료되었으나 이메일 발송에 실패했습니다.");
+        BlacklistNotifications.emailFailed(emailError.message || "이메일 발송 중 오류 발생");
       }
     },
     onError: (error) => {
@@ -159,9 +212,10 @@ export const useRemoveFromBlacklist = () => {
 
   return useMutation({
     mutationFn: async (blacklistId: number) => {
+      // 블랙리스트 해제 시 완전 삭제
       const { data, error } = await (supabase as any)
         .from("blacklist")
-        .update({ is_active: false })
+        .delete()
         .eq("id", blacklistId)
         .select()
         .single();
@@ -187,24 +241,24 @@ export const useRemoveFromBlacklist = () => {
           .eq("id", (data as any).user_id)
           .single();
 
-        const { data: adminProfile } = await supabase
-          .from("profiles")
-          .select("name")
-          .eq("id", user?.id!)
-          .single();
-
         if (!profileError && userProfile?.email) {
-          await sendBlacklistRemovalEmail({
-            userEmail: userProfile.email,
-            userName: userProfile.name || "참여자",
-            removedBy: adminProfile?.name || "관리자",
-          });
+          const emailResult = await sendBlacklistRemovalEmail(
+            userProfile.email,
+            userProfile.name || "참여자"
+          );
 
-          toast.success("블랙리스트 해제 알림 이메일이 발송되었습니다.");
+          // 향상된 알림 시스템 사용
+          BlacklistNotifications.removeSuccess(userProfile.name || "참여자");
+
+          if (emailResult.success) {
+            BlacklistNotifications.emailSent(userProfile.email, 'removal');
+          } else {
+            BlacklistNotifications.emailFailed(emailResult.error || "알 수 없는 오류");
+          }
         }
       } catch (emailError) {
         console.error("이메일 발송 실패:", emailError);
-        toast.warning("블랙리스트 해제는 완료되었으나 이메일 발송에 실패했습니다.");
+        BlacklistNotifications.emailFailed(emailError.message || "이메일 발송 중 오류 발생");
       }
     },
     onError: (error) => {
