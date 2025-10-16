@@ -5,6 +5,7 @@ import { Calendar, Check, X, Clock, User, Download, BarChart3 } from "lucide-rea
 import { toast } from "sonner";
 import { exportAttendanceXLSX } from "@/utils/excelExport";
 import { exportAttendanceSummaryXLSX } from "@/utils/attendanceExcelExport";
+import { attendanceNotificationBus } from "@/utils/attendanceNotificationBus";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -112,6 +113,23 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
       date: selectedDate,
       status: "present",
       notes: dataUrl, // 서명 이미지를 notes에 저장
+    }, {
+      onSuccess: () => {
+        // 출석 처리 성공 시 알림 이벤트 발행
+        console.log('📋 출석 처리 성공! 알림 발행 중...', {
+          userId: signatureModal.userId!,
+          programTitle,
+          status: 'present',
+          date: selectedDate
+        });
+        
+        attendanceNotificationBus.publish({
+          userId: signatureModal.userId!,
+          programTitle,
+          status: 'present',
+          date: selectedDate
+        });
+      }
     });
 
     setSignatureModal({ isOpen: false });
@@ -123,6 +141,23 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
       programId,
       date: selectedDate,
       status: "absent",
+    }, {
+      onSuccess: () => {
+        // 결석 처리 성공 시 알림 이벤트 발행
+        console.log('📋 결석 처리 성공! 알림 발행 중...', {
+          userId,
+          programTitle,
+          status: 'absent',
+          date: selectedDate
+        });
+        
+        attendanceNotificationBus.publish({
+          userId,
+          programTitle,
+          status: 'absent',
+          date: selectedDate
+        });
+      }
     });
   };
 
@@ -132,6 +167,23 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
       programId,
       date: selectedDate,
       status: "late",
+    }, {
+      onSuccess: () => {
+        // 지각 처리 성공 시 알림 이벤트 발행
+        console.log('📋 지각 처리 성공! 알림 발행 중...', {
+          userId,
+          programTitle,
+          status: 'late',
+          date: selectedDate
+        });
+        
+        attendanceNotificationBus.publish({
+          userId,
+          programTitle,
+          status: 'late',
+          date: selectedDate
+        });
+      }
     });
   };
 

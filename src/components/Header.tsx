@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { attendanceNotificationBus } from "@/utils/attendanceNotificationBus";
 import { DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import {
   Sheet,
@@ -36,7 +37,7 @@ const Header = () => {
   const [notificationCount, setNotificationCount] = useState(0);
   const [notifications, setNotifications] = useState<Array<{
     id: string;
-    type: 'profile' | 'application' | 'comment' | 'like';
+    type: 'profile' | 'application' | 'comment' | 'like' | 'attendance';
     message: string;
     timestamp: Date;
     read: boolean;
@@ -96,6 +97,22 @@ const Header = () => {
     if (!user?.id) return;
 
     console.log('🔔 Setting up notification subscriptions for user:', user.id);
+
+    // Add notification helper function (로컬 함수로 이동)
+    const addNotification = (type: 'profile' | 'application' | 'comment' | 'like' | 'attendance', message: string) => {
+      console.log('🔔 Adding notification:', { type, message });
+      const newNotification = {
+        id: Date.now().toString(),
+        type,
+        message,
+        timestamp: new Date(),
+        read: false
+      };
+      setNotifications(prev => [newNotification, ...prev.slice(0, 9)]); // Keep last 10 notifications
+      setNotificationCount(prev => prev + 1);
+      setHasNotifications(true);
+      console.log('🔔 Notification added successfully');
+    };
 
     // Profile changes subscription
     const profileChannel = supabase
@@ -277,30 +294,47 @@ const Header = () => {
         console.log('❤️ Like channel status:', status);  
       });
 
+    // 출석 알림 구독 추가
+    const unsubscribeAttendance = attendanceNotificationBus.subscribe((data) => {
+      console.log('📋 출석 알림 수신됨:', data);
+      console.log('📋 현재 사용자 ID:', user.id);
+      console.log('📋 알림 대상 사용자 ID:', data.userId);
+      
+      // 현재 로그인한 사용자의 알림만 처리
+      if (data.userId === user.id) {
+        console.log('📋 현재 사용자 알림 맞음! 처리 중...');
+        
+        const statusText = {
+          'present': '출석',
+          'absent': '결석',
+          'late': '지각'
+        };
+        
+        const message = `${data.programTitle} (${data.date}) - ${statusText[data.status]} 처리되었습니다.`;
+        
+        console.log('📋 Adding attendance notification:', message);
+        
+        // 알림 목록에 추가
+        addNotification('attendance', message);
+        
+        // 토스트 알림도 표시
+        toast.success('출석 상태가 변경되었습니다!', {
+          description: message,
+        });
+      } else {
+        console.log('📋 다른 사용자 알림이므로 무시');
+      }
+    });
+
     return () => {
       console.log('🔔 Cleaning up notification subscriptions');
       supabase.removeChannel(profileChannel);
       supabase.removeChannel(applicationChannel);
       supabase.removeChannel(commentChannel);
       supabase.removeChannel(likeChannel);
+      unsubscribeAttendance();
     };
   }, [user?.id]);
-
-  // Add notification helper function
-  const addNotification = (type: 'profile' | 'application' | 'comment' | 'like', message: string) => {
-    console.log('🔔 Adding notification:', { type, message });
-    const newNotification = {
-      id: Date.now().toString(),
-      type,
-      message,
-      timestamp: new Date(),
-      read: false
-    };
-    setNotifications(prev => [newNotification, ...prev.slice(0, 9)]); // Keep last 10 notifications
-    setNotificationCount(prev => prev + 1);
-    setHasNotifications(true);
-    console.log('🔔 Notification added successfully');
-  };
 
   // Clear notifications when clicked
   const handleNotificationClick = () => {
@@ -444,6 +478,7 @@ const Header = () => {
                 )}
               </Button>
             </DropdownMenuTrigger>
+
             <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto bg-background border shadow-lg z-50">
               <div className="px-3 py-2 border-b">
                 <div className="flex items-center justify-between">
@@ -473,6 +508,7 @@ const Header = () => {
                           notification.type === 'profile' ? 'bg-blue-500' :
                           notification.type === 'application' ? 'bg-green-500' :
                           notification.type === 'comment' ? 'bg-purple-500' :
+                          notification.type === 'attendance' ? 'bg-orange-500' :
                           'bg-red-500'
                         }`} />
                         <div className="flex-1 min-w-0">

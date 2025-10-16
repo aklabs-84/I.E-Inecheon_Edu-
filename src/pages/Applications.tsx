@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, MapPin, Users, Clock, FileText, X, Loader2, ClipboardCheck } from "lucide-react";
+import { Calendar, MapPin, Users, Clock, FileText, X, Loader2, ClipboardCheck, BookOpen } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useMyApplications, useCancelApplication } from "@/hooks/useApplications";
 import { useProgramSurveys, useUserSurveyResponse } from "@/hooks/useSurveys";
@@ -13,6 +13,9 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useEffect } from "react";
 import Footer from "@/components/Footer";
+import { ClassStatus } from "@/components/ClassStatus";
+import { useUserAttendanceRecords } from "@/hooks/useUserAttendance";
+import { getProgramCardColors } from "@/utils/programColors";
 
 // ConsentButton 컴포넌트
 const ConsentButton = ({ programId, program }: { programId: number; program: any }) => {
@@ -99,6 +102,7 @@ const Applications = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { data: applications = [], isLoading } = useMyApplications();
+  const { data: attendanceRecords = [] } = useUserAttendanceRecords();
   const cancelMutation = useCancelApplication();
 
   useEffect(() => {
@@ -272,15 +276,16 @@ const Applications = () => {
 
         {/* Tabs for Different Status */}
         <Tabs defaultValue="current" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+          <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
             <TabsTrigger value="current">현재 신청</TabsTrigger>
+            <TabsTrigger value="class-status">수업 상태</TabsTrigger>
             <TabsTrigger value="completed">완료된 프로그램</TabsTrigger>
           </TabsList>
 
           <TabsContent value="current" className="space-y-4">
             {currentApplications.length > 0 ? (
               currentApplications.map((application) => (
-                <Card key={application.id} className="hover:shadow-md transition-shadow">
+                <Card key={application.id} className={`hover:shadow-md transition-shadow ${getProgramCardColors(application.programs.id)}`}>
                   <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
@@ -382,10 +387,45 @@ const Applications = () => {
             )}
           </TabsContent>
 
+          <TabsContent value="class-status" className="space-y-4">
+            {/* 승인된 프로그램 중 수업이 시작된 것들만 표시 */}
+            {(() => {
+              const approvedPrograms = applications.filter(app => 
+                app.status === "approved" && 
+                app.programs.start_at && 
+                new Date(app.programs.start_at) <= new Date()
+              );
+
+              if (approvedPrograms.length === 0) {
+                return (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">참여 중인 수업이 없습니다</h3>
+                      <p className="text-muted-foreground text-center">
+                        승인된 프로그램이 시작되면 여기에서 출석 현황을 확인할 수 있습니다.
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              }
+
+              return approvedPrograms.map((application) => (
+                <ClassStatus
+                  key={application.id}
+                  programId={application.programs.id}
+                  programTitle={application.programs.title}
+                  startDate={application.programs.start_at}
+                  endDate={application.programs.end_at}
+                />
+              ));
+            })()}
+          </TabsContent>
+
           <TabsContent value="completed" className="space-y-4">
             {completedApplications.length > 0 ? (
               completedApplications.map((application) => (
-                <Card key={application.id} className="hover:shadow-md transition-shadow">
+                <Card key={application.id} className={`hover:shadow-md transition-shadow ${getProgramCardColors(application.programs.id)}`}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="space-y-2">
