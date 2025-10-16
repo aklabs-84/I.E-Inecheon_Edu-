@@ -10,12 +10,10 @@ export const sendBlacklistEmail = async (userEmail: string, userName: string, re
       blacklistedUntil
     });
 
-    // Resend 무료 계정 제한으로 테스트용 이메일 주소 사용
-    const testEmail = 'digicon84@gmail.com'; // Resend 계정 소유자 이메일
-
+    // incheonedu.kr 도메인 연결 완료로 실제 사용자 이메일로 발송
     const { data, error } = await supabase.functions.invoke('send-blacklist-email', {
       body: {
-        userEmail: testEmail, // 테스트용으로 변경
+        userEmail: userEmail, // 실제 사용자 이메일로 발송
         userName,
         reason,
         blacklistedUntil,
@@ -29,7 +27,7 @@ export const sendBlacklistEmail = async (userEmail: string, userName: string, re
     }
 
     console.log('✅ 블랙리스트 이메일 발송 성공:', data);
-    console.log(`📧 실제로는 ${userEmail}로 발송될 예정이지만, 테스트를 위해 ${testEmail}로 발송되었습니다.`);
+    console.log(`📧 ${userEmail}로 블랙리스트 통지 이메일이 발송되었습니다.`);
     
     return { success: true, data };
   } catch (error) {
@@ -46,12 +44,10 @@ export const sendBlacklistRemovalEmail = async (userEmail: string, userName: str
       userName
     });
 
-    // Resend 무료 계정 제한으로 테스트용 이메일 주소 사용
-    const testEmail = 'digicon84@gmail.com'; // Resend 계정 소유자 이메일
-
+    // incheonedu.kr 도메인 연결 완료로 실제 사용자 이메일로 발송
     const { data, error } = await supabase.functions.invoke('send-blacklist-email', {
       body: {
-        userEmail: testEmail, // 테스트용으로 변경
+        userEmail: userEmail, // 실제 사용자 이메일로 발송
         userName,
         reason: '',
         blacklistedUntil: '',
@@ -65,7 +61,7 @@ export const sendBlacklistRemovalEmail = async (userEmail: string, userName: str
     }
 
     console.log('✅ 블랙리스트 해제 이메일 발송 성공:', data);
-    console.log(`📧 실제로는 ${userEmail}로 발송될 예정이지만, 테스트를 위해 ${testEmail}로 발송되었습니다.`);
+    console.log(`📧 ${userEmail}로 블랙리스트 해제 통지 이메일이 발송되었습니다.`);
     
     return { success: true, data };
   } catch (error) {
