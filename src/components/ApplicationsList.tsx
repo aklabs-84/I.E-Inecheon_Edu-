@@ -21,8 +21,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Check, X, User, Mail, MapPin, Clock, Loader2, Trash2 } from "lucide-react";
+import { Check, X, User, Mail, MapPin, Clock, Loader2, Trash2, Ban, CheckCircle } from "lucide-react";
 import { useProgramApplicationsDetail, useUpdateApplicationStatus, useDeleteApplicationAdmin } from "@/hooks/useApplications";
+import { useRemoveFromBlacklist, useBlacklistRecords } from "@/hooks/useBlacklist";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ApplicationsListProps {
   programId: number;
@@ -30,9 +33,12 @@ interface ApplicationsListProps {
 }
 
 const ApplicationsList = ({ programId, programTitle }: ApplicationsListProps) => {
+  const queryClient = useQueryClient();
   const { data: applications = [], isLoading } = useProgramApplicationsDetail(programId);
   const updateStatus = useUpdateApplicationStatus();
   const deleteApplication = useDeleteApplicationAdmin();
+  const removeFromBlacklist = useRemoveFromBlacklist();
+  const { data: blacklistRecords = [] } = useBlacklistRecords();
   const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(null);
   const [selectedAction, setSelectedAction] = useState<'pending' | 'approved' | 'cancelled' | 'delete' | null>(null);
 
@@ -93,6 +99,38 @@ const ApplicationsList = ({ programId, programTitle }: ApplicationsListProps) =>
     }
   };
 
+  // 사용자가 블랙리스트에 있는지 확인하는 함수
+  const isUserBlacklisted = (userId: string) => {
+    return blacklistRecords.some(record => 
+      record.user_id === userId && 
+      record.is_active && 
+      new Date(record.blacklisted_until) > new Date()
+    );
+  };
+
+  // 블랙리스트 해제 함수
+  const handleRemoveFromBlacklist = async (userId: string, userName: string) => {
+    // 해당 사용자의 활성 블랙리스트 레코드 찾기
+    const activeBlacklistRecord = blacklistRecords.find(record => 
+      record.user_id === userId && 
+      record.is_active && 
+      new Date(record.blacklisted_until) > new Date()
+    );
+
+    if (activeBlacklistRecord) {
+      removeFromBlacklist.mutate(activeBlacklistRecord.id, {
+        onSuccess: async () => {
+          // 즉시 블랙리스트 데이터 새로고침
+          await queryClient.invalidateQueries({ queryKey: ["blacklist-records"] });
+          await queryClient.refetchQueries({ queryKey: ["blacklist-records"] });
+          toast.success(`${userName}님의 블랙리스트가 해제되었습니다. 화면을 새로고침합니다.`);
+        }
+      });
+    } else {
+      toast.error("활성 블랙리스트 기록을 찾을 수 없습니다.");
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -148,9 +186,17 @@ const ApplicationsList = ({ programId, programTitle }: ApplicationsListProps) =>
                     <TableRow key={application.id}>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-medium">
-                            {application.profiles?.name || '이름 없음'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">
+                              {application.profiles?.name || '이름 없음'}
+                            </span>
+                            {isUserBlacklisted(application.user_id) && (
+                              <Badge variant="destructive" className="text-xs">
+                                <Ban className="h-3 w-3 mr-1" />
+                                블랙리스트
+                              </Badge>
+                            )}
+                          </div>
                           <span className="text-sm text-muted-foreground">
                             {application.profiles?.nickname && `@${application.profiles.nickname}`}
                           </span>
@@ -264,6 +310,41 @@ const ApplicationsList = ({ programId, programTitle }: ApplicationsListProps) =>
                                 삭제
                               </Button>
                             </>
+                          )}
+
+                          {/* 블랙리스트 해제 버튼 - 모든 상태에서 블랙리스트된 사용자에게 표시 */}
+                          {isUserBlacklisted(application.user_id) && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                >
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  블랙리스트 해제
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>블랙리스트 해제</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    <strong>{application.profiles?.name || "참여자"}</strong>님의 블랙리스트를 해제하시겠습니까?
+                                    <br /><br />
+                                    해제 후 해당 사용자는 다시 프로그램에 신청할 수 있습니다.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>취소</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleRemoveFromBlacklist(application.user_id, application.profiles?.name || "참여자")}
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    블랙리스트 해제
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           )}
                         </div>
                       </TableCell>

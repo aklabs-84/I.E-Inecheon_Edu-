@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Users, Clock } from "lucide-react";
+import { Calendar, MapPin, Users, Clock, Ban } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useMyBlacklistStatus } from "@/hooks/useBlacklist";
+import { toast } from "sonner";
+import { debugBlacklist } from "@/utils/blacklistDebug";
 
 interface ProgramCardProps {
   id: number;
@@ -32,6 +35,8 @@ const ProgramCard = ({
   status,
 }: ProgramCardProps) => {
   const navigate = useNavigate();
+  const { data: blacklistStatus, isLoading: isBlacklistLoading } = useMyBlacklistStatus();
+  
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "모집중":
@@ -48,6 +53,31 @@ const ProgramCard = ({
   };
 
   const isApplicationOpen = status === "모집중" && currentApplicants < capacity;
+  
+  // 블랙리스트 체크 강화
+  const isBlacklisted = blacklistStatus && 
+    blacklistStatus.is_active && 
+    new Date(blacklistStatus.blacklisted_until) > new Date();
+
+  // 디버깅을 위한 로그 (개발 환경에서만)
+  if (process.env.NODE_ENV === 'development' && blacklistStatus) {
+    debugBlacklist.checkStatus(`card-${id}`, blacklistStatus);
+  }
+
+  const handleApplyClick = () => {
+    if (isBlacklisted) {
+      const until = blacklistStatus?.blacklisted_until;
+      const untilDate = until ? new Date(until).toLocaleDateString("ko-KR") : "기한 미정";
+      
+      debugBlacklist.blockApplication(`프로그램 ${id} 신청 차단`);
+      
+      toast.error(`블랙리스트로 인해 프로그램 신청이 제한되었습니다. (${untilDate}까지)`, {
+        duration: 5000,
+      });
+      return;
+    }
+    navigate(`/program/${id}`);
+  };
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-300 overflow-hidden border-0 shadow-md bg-gradient-to-br from-card to-card/50 flex flex-col h-full">
@@ -127,13 +157,33 @@ const ProgramCard = ({
         </CardContent>
 
         <CardFooter className="mt-auto">
-          <Button 
-            className="w-full" 
-            onClick={() => navigate(`/programs/${id}`)}
-            variant="default"
-          >
-            자세히 보기
-          </Button>
+          {isBlacklistLoading ? (
+            <Button 
+              className="w-full" 
+              variant="outline"
+              disabled
+            >
+              확인 중...
+            </Button>
+          ) : isBlacklisted ? (
+            <Button 
+              className="w-full border-red-500 text-red-600 bg-red-50" 
+              variant="outline"
+              disabled
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              신청 제한 (블랙리스트)
+            </Button>
+          ) : (
+            <Button 
+              className="w-full" 
+              onClick={handleApplyClick}
+              variant="default"
+              disabled={!isApplicationOpen}
+            >
+              {isApplicationOpen ? "신청하기" : status === "마감" ? "마감" : "신청 불가"}
+            </Button>
+          )}
         </CardFooter>
       </div>
     </Card>

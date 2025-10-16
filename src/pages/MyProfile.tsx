@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Lock, Shield, Eye, EyeOff, FileText, Settings } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { User, Lock, Shield, Eye, EyeOff, FileText, Settings, Ban, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
+import { useMyBlacklistStatus } from "@/hooks/useBlacklist";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { validatePassword } from "@/lib/passwordValidation";
@@ -21,6 +23,7 @@ import Footer from "@/components/Footer";
 const MyProfile = () => {
   const { user } = useAuth();
   const { posts, loading: postsLoading, fetchMyPosts, updatePost, deletePost } = usePosts();
+  const { data: blacklistStatus, isLoading: isBlacklistLoading } = useMyBlacklistStatus();
   const [userProfile, setUserProfile] = useState<{name?: string; role?: string} | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -328,16 +331,56 @@ const MyProfile = () => {
                   {(userProfile?.name || user.email?.split('@')[0] || 'U')[0].toUpperCase()}
                 </span>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 flex-1">
                 <h3 className="text-lg font-semibold">
                   {userProfile?.name || user.email?.split('@')[0]}
                 </h3>
                 <p className="text-sm text-muted-foreground">{user.email}</p>
-                <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white ${getRoleBadgeColor()}`}>
-                  {getRoleDisplay()}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white ${getRoleBadgeColor()}`}>
+                    {getRoleDisplay()}
+                  </div>
+                  
+                  {/* 블랙리스트 상태 뱃지 */}
+                  {isBlacklistLoading ? (
+                    <Badge variant="outline" className="text-xs">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      확인 중...
+                    </Badge>
+                  ) : blacklistStatus && blacklistStatus.is_active && new Date(blacklistStatus.blacklisted_until) > new Date() ? (
+                    <Badge variant="destructive" className="text-xs">
+                      <Ban className="h-3 w-3 mr-1" />
+                      블랙리스트 ({new Date(blacklistStatus.blacklisted_until).toLocaleDateString("ko-KR")}까지)
+                    </Badge>
+                  ) : blacklistStatus ? (
+                    <Badge variant="outline" className="text-xs text-green-600 border-green-500">
+                      ✅ 정상 사용자
+                    </Badge>
+                  ) : null}
                 </div>
               </div>
             </div>
+            
+            {/* 블랙리스트 상세 정보 */}
+            {blacklistStatus && blacklistStatus.is_active && new Date(blacklistStatus.blacklisted_until) > new Date() && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <Ban className="h-4 w-4 text-red-500 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-red-700">프로그램 신청이 제한되었습니다</p>
+                    <p className="text-red-600 mt-1">
+                      <strong>사유:</strong> {blacklistStatus.reason}
+                    </p>
+                    <p className="text-red-600">
+                      <strong>해제일:</strong> {new Date(blacklistStatus.blacklisted_until).toLocaleDateString("ko-KR")}
+                    </p>
+                    <p className="text-red-500 text-xs mt-2">
+                      문의사항이 있으시면 운영팀에 연락주세요.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -2,13 +2,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useMyBlacklistStatus } from "@/hooks/useBlacklist";
 import { useEffect } from "react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, MapPin, Users, Clock, ArrowLeft, User } from "lucide-react";
+import { Calendar, MapPin, Users, Clock, ArrowLeft, User, Ban } from "lucide-react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import Footer from "@/components/Footer";
@@ -18,6 +19,7 @@ const ProgramDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { data: blacklistStatus, isLoading: isBlacklistLoading } = useMyBlacklistStatus();
 
   // 프로그램 상세 정보 조회
   const { data: program, isLoading: programLoading } = useQuery({
@@ -96,6 +98,12 @@ const ProgramDetail = () => {
         throw new Error("로그인이 필요합니다.");
       }
 
+      // 블랙리스트 체크
+      if (blacklistStatus && blacklistStatus.is_active && new Date(blacklistStatus.blacklisted_until) > new Date()) {
+        const untilDate = new Date(blacklistStatus.blacklisted_until).toLocaleDateString("ko-KR");
+        throw new Error(`블랙리스트로 인해 프로그램 신청이 제한되었습니다. (${untilDate}까지)`);
+      }
+
       const { data, error } = await supabase
         .from("applications")
         .insert([{
@@ -120,7 +128,7 @@ const ProgramDetail = () => {
     },
     onError: (error: any) => {
       console.error("Apply error:", error);
-      toast.error("프로그램 신청에 실패했습니다.");
+      toast.error(error.message || "프로그램 신청에 실패했습니다.");
     },
   });
 
@@ -220,11 +228,24 @@ const ProgramDetail = () => {
   const status = getStatus();
   const isApplicationOpen = status === "모집중" && applicationCount < (program.capacity || 0);
   const hasApplied = !!userApplication;
+  
+  // 블랙리스트 체크
+  const isBlacklisted = blacklistStatus && 
+    blacklistStatus.is_active && 
+    new Date(blacklistStatus.blacklisted_until) > new Date();
 
   const handleApplyAction = () => {
     if (!user) {
       toast.error("로그인이 필요합니다.");
       navigate("/auth");
+      return;
+    }
+
+    if (isBlacklisted) {
+      const untilDate = new Date(blacklistStatus.blacklisted_until).toLocaleDateString("ko-KR");
+      toast.error(`블랙리스트로 인해 프로그램 신청이 제한되었습니다. (${untilDate}까지)`, {
+        duration: 5000,
+      });
       return;
     }
 
@@ -358,17 +379,49 @@ const ProgramDetail = () => {
                   </div>
                 )}
                 
+                {user && isBlacklisted && (
+                  <div className="flex items-center text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+                    <Ban className="w-4 h-4 mr-2" />
+                    블랙리스트로 인해 신청이 제한되었습니다 ({new Date(blacklistStatus.blacklisted_until).toLocaleDateString("ko-KR")}까지)
+                  </div>
+                )}
+                
                 {user ? (
                   <Button 
-                    className="flex-1 sm:max-w-xs h-12"
-                    disabled={(!isApplicationOpen && !hasApplied) || applyMutation.isPending || cancelMutation.isPending}
+                    className={`flex-1 sm:max-w-xs h-12 ${isBlacklisted ? "border-red-500 text-red-600 bg-red-50" : ""}`}
+                    disabled={
+                      isBlacklisted || 
+                      (!isApplicationOpen && !hasApplied) || 
+                      applyMutation.isPending || 
+                      cancelMutation.isPending ||
+                      isBlacklistLoading
+                    }
                     onClick={handleApplyAction}
-                    variant={hasApplied ? "outline" : isApplicationOpen ? "default" : "secondary"}
+                    variant={
+                      isBlacklisted 
+                        ? "outline" 
+                        : hasApplied 
+                        ? "outline" 
+                        : isApplicationOpen 
+                        ? "default" 
+                        : "secondary"
+                    }
                   >
-                    {applyMutation.isPending || cancelMutation.isPending ? (
+                    {isBlacklistLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        확인 중...
+                      </>
+                    ) : applyMutation.isPending || cancelMutation.isPending ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     ) : null}
-                    {hasApplied 
+                    {isBlacklisted 
+                      ? (
+                        <>
+                          <Ban className="w-4 h-4 mr-2" />
+                          신청 제한 (블랙리스트)
+                        </>
+                      ) : hasApplied 
                       ? "신청 취소" 
                       : isApplicationOpen 
                       ? "신청하기" 

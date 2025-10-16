@@ -1,8 +1,9 @@
 import { useState, useRef, useMemo, useEffect } from "react";
 import { format, eachDayOfInterval, parseISO, isWeekend } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Calendar, Check, X, Clock, User, Download, BarChart3 } from "lucide-react";
+import { Calendar, Check, X, Clock, User, Download, BarChart3, Ban, AlertTriangle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { exportAttendanceXLSX } from "@/utils/excelExport";
 import { exportAttendanceSummaryXLSX } from "@/utils/attendanceExcelExport";
 import { attendanceNotificationBus } from "@/utils/attendanceNotificationBus";
@@ -27,10 +28,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { SignatureModal } from "./SignatureModal";
 import { useProgramApplicationsDetail } from "@/hooks/useApplications";
 import { useProgramAttendance, useMarkAttendance } from "@/hooks/useAttendance";
 import { usePrograms } from "@/hooks/usePrograms";
+import { useAddToBlacklist, useCheckBlacklist, useRemoveFromBlacklist, useBlacklistRecords } from "@/hooks/useBlacklist";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AttendanceTableProps {
   programId: number;
@@ -38,6 +52,7 @@ interface AttendanceTableProps {
 }
 
 export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProps) => {
+  const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [activeTab, setActiveTab] = useState("daily");
   const [signatureModal, setSignatureModal] = useState<{
@@ -53,6 +68,19 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
   const { data: attendanceRecords = [] } = useProgramAttendance(programId, selectedDate);
   const { data: allAttendanceRecords = [] } = useProgramAttendance(programId); // 전체 출석 기록
   const markAttendance = useMarkAttendance();
+  const addToBlacklist = useAddToBlacklist();
+  const removeFromBlacklist = useRemoveFromBlacklist();
+  const { data: blacklistRecords = [], isLoading: isBlacklistLoading } = useBlacklistRecords();
+
+  // 디버깅을 위한 로그 (개발 환경에서만)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📊 블랙리스트 데이터:', {
+        recordsCount: blacklistRecords.length,
+        isLoading: isBlacklistLoading
+      });
+    }
+  }, [blacklistRecords, isBlacklistLoading]);
 
   // 현재 프로그램 정보
   const currentProgram = programs.find(p => p.id === programId);
@@ -102,6 +130,64 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
   // 출석 상태 조회 헬퍼
   const getAttendanceStatus = (userId: string) => {
     return attendanceRecords.find(record => record.user_id === userId)?.status || null;
+  };
+
+  // 사용자별 결석 횟수 계산
+  const getUserAbsentCount = (userId: string) => {
+    return allAttendanceRecords.filter(record => 
+      record.user_id === userId && record.status === "absent"
+    ).length;
+  };
+
+  // 블랙리스트 처리 함수
+  const handleBlacklistUser = async (userId: string, userName: string) => {
+    const absentCount = getUserAbsentCount(userId);
+    
+    addToBlacklist.mutate({
+      userId,
+      programId,
+      reason: `연속 결석 (총 ${absentCount}회 결석)`
+    }, {
+      onSuccess: async () => {
+        // 즉시 블랙리스트 데이터 새로고침
+        await queryClient.invalidateQueries({ queryKey: ["blacklist-records"] });
+        await queryClient.refetchQueries({ queryKey: ["blacklist-records"] });
+        toast.success(`${userName}님이 블랙리스트에 추가되었습니다. 화면을 새로고침합니다.`);
+      }
+    });
+  };
+
+  // 블랙리스트 해제 함수
+  const handleRemoveFromBlacklist = async (userId: string, userName: string) => {
+    // 해당 사용자의 활성 블랙리스트 레코드 찾기
+    const activeBlacklistRecord = blacklistRecords.find(record => 
+      record.user_id === userId && 
+      record.is_active && 
+      new Date(record.blacklisted_until) > new Date()
+    );
+
+    if (activeBlacklistRecord) {
+      removeFromBlacklist.mutate(activeBlacklistRecord.id, {
+        onSuccess: async () => {
+          // 즉시 블랙리스트 데이터 새로고침
+          await queryClient.invalidateQueries({ queryKey: ["blacklist-records"] });
+          await queryClient.refetchQueries({ queryKey: ["blacklist-records"] });
+          toast.success(`${userName}님의 블랙리스트가 해제되었습니다. 화면을 새로고침합니다.`);
+        }
+      });
+    } else {
+      toast.error("활성 블랙리스트 기록을 찾을 수 없습니다.");
+    }
+  };
+
+  // 사용자가 블랙리스트에 있는지 확인하는 함수
+  const isUserBlacklisted = (userId: string) => {
+    const userRecords = blacklistRecords.filter(r => r.user_id === userId);
+    const activeRecords = userRecords.filter(r => r.is_active);
+    const currentTime = new Date();
+    const validRecords = activeRecords.filter(r => new Date(r.blacklisted_until) > currentTime);
+    
+    return validRecords.length > 0;
   };
 
   const handleSignatureConfirm = (dataUrl: string) => {
@@ -157,6 +243,19 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
           status: 'absent',
           date: selectedDate
         });
+
+        // 결석 처리 후 자동 블랙리스트 체크
+        setTimeout(() => {
+          const newAbsentCount = getUserAbsentCount(userId) + 1;
+          if (newAbsentCount >= 3) {
+            const user = approvedApplicants.find(app => app.user_id === userId);
+            if (user) {
+              toast.warning(`${user.profiles?.name}님이 3회 이상 결석하여 블랙리스트 처리가 필요합니다.`, {
+                duration: 5000,
+              });
+            }
+          }
+        }, 1000);
       }
     });
   };
@@ -390,26 +489,48 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
                   <TableHead>이름</TableHead>
                   <TableHead>닉네임</TableHead>
                   <TableHead>지역</TableHead>
+                  <TableHead className="w-24">결석횟수</TableHead>
                   <TableHead className="w-32">출석상태</TableHead>
-                  <TableHead className="w-48">액션</TableHead>
+                  <TableHead className="w-56">액션</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {approvedApplicants.map((application, index) => {
                   const profile = application.profiles;
                   const attendanceStatus = getAttendanceStatus(application.user_id);
+                  const absentCount = getUserAbsentCount(application.user_id);
                   
                   return (
                     <TableRow key={application.id}>
                       <TableCell className="font-medium">{index + 1}</TableCell>
-                      <TableCell>{profile?.name || "이름 없음"}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span>{profile?.name || "이름 없음"}</span>
+                          {isUserBlacklisted(application.user_id) && (
+                            <Badge variant="destructive" className="text-xs">
+                              <Ban className="h-3 w-3 mr-1" />
+                              블랙리스트
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>{profile?.nickname || "-"}</TableCell>
                       <TableCell>{profile?.region || "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <span className={absentCount >= 3 ? "text-red-600 font-bold" : ""}>
+                            {absentCount}회
+                          </span>
+                          {absentCount >= 3 && (
+                            <AlertTriangle className="h-4 w-4 text-red-500" />
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         {getStatusBadge(attendanceStatus)}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1 flex-wrap">
                           {attendanceStatus !== "present" && (
                             <Button
                               size="sm"
@@ -440,6 +561,77 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
                             >
                               결석
                             </Button>
+                          )}
+                          {absentCount >= 3 && !isUserBlacklisted(application.user_id) && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-red-500 text-red-600 hover:bg-red-50"
+                                >
+                                  <Ban className="h-3 w-3 mr-1" />
+                                  블랙리스트
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>블랙리스트 처리</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    <strong>{profile?.name}</strong>님을 블랙리스트에 추가하시겠습니까?
+                                    <br /><br />
+                                    현재 결석 횟수: <strong className="text-red-600">{absentCount}회</strong>
+                                    <br />
+                                    블랙리스트 기간: <strong>3개월</strong>
+                                    <br /><br />
+                                    이 작업은 되돌릴 수 있으며, 해당 사용자는 3개월 동안 프로그램 신청이 제한됩니다.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>취소</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleBlacklistUser(application.user_id, profile?.name || "참여자")}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    블랙리스트 추가
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                          
+                          {isUserBlacklisted(application.user_id) && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-green-500 text-green-600 hover:bg-green-50"
+                                >
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  해제
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>블랙리스트 해제</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    <strong>{profile?.name}</strong>님의 블랙리스트를 해제하시겠습니까?
+                                    <br /><br />
+                                    해제 후 해당 사용자는 다시 프로그램에 신청할 수 있습니다.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>취소</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleRemoveFromBlacklist(application.user_id, profile?.name || "참여자")}
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    블랙리스트 해제
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           )}
                         </div>
                       </TableCell>
