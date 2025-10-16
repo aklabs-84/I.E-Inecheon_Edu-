@@ -29,7 +29,7 @@ serve(async (req) => {
     console.log('Sending email to:', userEmail, 'Type:', type)
 
     const emailData = {
-      from: 'aklabs84@incheonedu.kr', // 개인화된 발신자로 변경
+      from: 'onboarding@resend.dev', // 임시로 기본 발신자로 변경
       to: [userEmail],
       subject: type === 'blacklist' ? '인천에듀 - 프로그램 신청 제한 안내' : '인천에듀 - 프로그램 신청 제한 해제 안내',
       html: generateEmailTemplate(userName, reason, blacklistedUntil, type)
