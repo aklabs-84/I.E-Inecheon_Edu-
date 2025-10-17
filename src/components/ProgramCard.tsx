@@ -76,7 +76,7 @@ const ProgramCard = ({
       });
       return;
     }
-    navigate(`/program/${id}`);
+    navigate(`/programs/${id}`);
   };
 
   return (
