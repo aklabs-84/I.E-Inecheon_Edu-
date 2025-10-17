@@ -10,14 +10,10 @@ export const sendBlacklistEmail = async (userEmail: string, userName: string, re
       blacklistedUntil
     });
 
-    // 임시 테스트: 확인된 이메일로 발송
-    const testEmail = 'digicon84@gmail.com';
-    console.log(`🔄 테스트를 위해 ${userEmail} 대신 ${testEmail}로 발송합니다.`);
-
-    // incheonedu.kr 도메인 연결 완료로 실제 사용자 이메일로 발송
+    // 실제 사용자 이메일로 발송
     const { data, error } = await supabase.functions.invoke('send-blacklist-email', {
       body: {
-        userEmail: testEmail, // 테스트용 이메일로 임시 변경
+        userEmail: userEmail, // 실제 사용자 이메일로 발송
         userName,
         reason,
         blacklistedUntil,
