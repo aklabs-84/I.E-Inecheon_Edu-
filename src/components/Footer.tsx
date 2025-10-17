@@ -38,8 +38,8 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4">연락처</h4>
             <p className="text-sm text-muted-foreground">
-              인천광역시 남동구 정각로 29<br />
-              Tel: 032-420-8000
+              인천광역시 동구 화도진로 154, 2층<br />
+              Tel: 0507-1335-0298
             </p>
           </div>
         </div>
