@@ -534,47 +534,73 @@ const SuperAdmin = () => {
                             
                             <CollapsibleContent>
                               <CardContent className="pt-0">
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="space-y-6">
                                   {/* 프로그램 상세 정보 */}
                                   <div>
-                                    <h4 className="font-semibold mb-3">프로그램 정보</h4>
-                                    <div className="space-y-2 text-sm">
-                                      <div><strong>설명:</strong> {program.description || '설명 없음'}</div>
-                                      <div><strong>정원:</strong> {program.capacity || '미정'}명</div>
-                                      <div><strong>시작일:</strong> {program.start_at ? formatDate(program.start_at) : '미정'}</div>
-                                      <div><strong>종료일:</strong> {program.end_at ? formatDate(program.end_at) : '미정'}</div>
-                                      <div><strong>등록일:</strong> {formatDate(program.created_at)}</div>
+                                    <h4 className="font-semibold mb-3 text-lg border-b pb-2">프로그램 정보</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                      <div className="bg-muted/30 p-3 rounded">
+                                        <strong className="text-primary">설명:</strong> 
+                                        <div className="mt-1">{program.description || '설명 없음'}</div>
+                                      </div>
+                                      <div className="bg-muted/30 p-3 rounded">
+                                        <strong className="text-primary">정원:</strong> 
+                                        <div className="mt-1">{program.capacity || '미정'}명</div>
+                                      </div>
+                                      <div className="bg-muted/30 p-3 rounded">
+                                        <strong className="text-primary">시작일:</strong> 
+                                        <div className="mt-1">{program.start_at ? formatDate(program.start_at) : '미정'}</div>
+                                      </div>
+                                      <div className="bg-muted/30 p-3 rounded">
+                                        <strong className="text-primary">종료일:</strong> 
+                                        <div className="mt-1">{program.end_at ? formatDate(program.end_at) : '미정'}</div>
+                                      </div>
+                                      <div className="bg-muted/30 p-3 rounded sm:col-span-2">
+                                        <strong className="text-primary">등록일:</strong> 
+                                        <div className="mt-1">{formatDate(program.created_at)}</div>
+                                      </div>
                                     </div>
                                   </div>
                                   
                                   {/* 신청자 목록 */}
                                   <div>
-                                    <h4 className="font-semibold mb-3">신청자 목록 ({programApplications.length}명)</h4>
+                                    <h4 className="font-semibold mb-3 text-lg border-b pb-2 flex items-center gap-2">
+                                      <Users className="h-5 w-5" />
+                                      신청자 목록 ({programApplications.length}명)
+                                    </h4>
                                     {programApplications.length === 0 ? (
-                                      <p className="text-muted-foreground text-sm">아직 신청자가 없습니다.</p>
+                                      <div className="text-center py-8 text-muted-foreground bg-muted/20 rounded-lg">
+                                        <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                        <p>아직 신청자가 없습니다.</p>
+                                      </div>
                                     ) : (
-                                      <div className="space-y-3 max-h-60 overflow-y-auto">
+                                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-80 overflow-y-auto">
                                         {programApplications.map((app) => (
-                                          <div key={app.id} className="border rounded p-3 bg-muted/30">
-                                            <div className="flex items-center justify-between mb-2">
-                                              <div className="font-medium">
+                                          <div key={app.id} className="border rounded-lg p-4 bg-muted/30 hover:bg-muted/50 transition-colors">
+                                            <div className="flex items-center justify-between mb-3">
+                                              <div className="font-medium text-lg">
                                                 {app.profiles?.name || '이름 없음'}
                                               </div>
                                               <Badge className={getStatusColor(app.status)}>
                                                 {app.status === 'pending' ? '대기중' : 
-                                                 app.status === 'approved' ? '신청완료' : '거절됨'}
+                                                 app.status === 'approved' ? '승인' : '거절'}
                                               </Badge>
                                             </div>
-                                            <div className="text-xs text-muted-foreground space-y-1">
-                                              <div><strong>이메일:</strong> {app.profiles?.email || '미제공'}</div>
-                                              <div><strong>닉네임:</strong> {app.profiles?.nickname || '미제공'}</div>
-                                              <div><strong>연령대:</strong> {app.profiles?.age_group || '미제공'}</div>
-                                              <div><strong>성별:</strong> {app.profiles?.gender || '미제공'}</div>
-                                              <div><strong>지역:</strong> {app.profiles?.region || '미제공'}</div>
-                                              <div><strong>선호 카테고리:</strong> {app.profiles?.preferred_category || '미제공'}</div>
-                                              <div><strong>학습 목적:</strong> {app.profiles?.learning_purpose || '미제공'}</div>
-                                              <div><strong>가능 시간:</strong> {app.profiles?.available_time || '미제공'}</div>
-                                              <div><strong>신청일:</strong> {formatDate(app.created_at)}</div>
+                                            <div className="text-sm space-y-2">
+                                              <div className="flex items-center gap-2">
+                                                <span className="font-semibold text-primary">📧</span>
+                                                <span className="truncate">{app.profiles?.email || '미제공'}</span>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <span className="font-semibold text-primary">👤</span>
+                                                <span>{app.profiles?.nickname || '미제공'}</span>
+                                              </div>
+                                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                                <div><strong>연령:</strong> {app.profiles?.age_group || '미제공'}</div>
+                                                <div><strong>성별:</strong> {app.profiles?.gender || '미제공'}</div>
+                                                <div><strong>지역:</strong> {app.profiles?.region || '미제공'}</div>
+                                                <div><strong>신청일:</strong> {formatDate(app.created_at).split(' ')[0]}</div>
+                                              </div>
                                             </div>
                                           </div>
                                         ))}

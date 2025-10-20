@@ -615,12 +615,12 @@ const Header = () => {
                 <Menu className="h-4 w-4" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80">
-              <SheetHeader>
+            <SheetContent side="right" className="w-80 overflow-y-auto max-h-screen">
+              <SheetHeader className="sticky top-0 bg-background z-10 pb-4">
                 <SheetTitle>메뉴</SheetTitle>
               </SheetHeader>
               
-              <div className="flex flex-col space-y-6 mt-6">
+              <div className="flex flex-col space-y-6 mt-2 pb-6">{/* mt-2로 조정하고 pb-6 추가로 하단 여백 확보 */}
                 {/* Mobile Search */}
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">검색</h3>
