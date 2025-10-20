@@ -121,15 +121,15 @@ export default function ConsentManagement({ programId: propProgramId }: ConsentM
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">동의서 관리</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-2">
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">동의서 관리</h2>
+        <p className="text-sm sm:text-base text-muted-foreground line-clamp-2">
           프로그램: {program?.title}
         </p>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div className="text-sm text-muted-foreground">
           총 {consentForm ? 1 : 0}개의 동의서
         </div>
@@ -195,11 +195,11 @@ export default function ConsentManagement({ programId: propProgramId }: ConsentM
         {consentForm && (
           <Card key={consentForm.id}>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5" />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <FileText className="h-5 w-5 mt-0.5 flex-shrink-0" />
                   <div>
-                    <CardTitle className="text-lg">
+                    <CardTitle className="text-base sm:text-lg line-clamp-2">
                       {consentForm.title.replace(/00/g, program?.title || "")}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -207,23 +207,22 @@ export default function ConsentManagement({ programId: propProgramId }: ConsentM
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={consentForm.is_active ? "default" : "secondary"}>
-                    {consentForm.is_active ? "활성" : "비활성"}
-                  </Badge>
-                </div>
+                <Badge variant={consentForm.is_active ? "default" : "secondary"} className="flex-shrink-0 w-fit">
+                  {consentForm.is_active ? "활성" : "비활성"}
+                </Badge>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="text-sm text-muted-foreground">
                   생성일: {new Date(consentForm.created_at).toLocaleDateString("ko-KR")}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setShowResults(true)}
+                    className="w-full sm:w-auto"
                   >
                     <BarChart3 className="h-4 w-4 mr-1" />
                     결과 보기
@@ -233,6 +232,7 @@ export default function ConsentManagement({ programId: propProgramId }: ConsentM
                     size="sm"
                     onClick={handleToggleActive}
                     disabled={updateConsent.isPending}
+                    className="w-full sm:w-auto"
                   >
                     <Settings className="h-4 w-4 mr-1" />
                     {consentForm.is_active ? "비활성화" : "활성화"}
@@ -241,10 +241,12 @@ export default function ConsentManagement({ programId: propProgramId }: ConsentM
                     variant="outline"
                     size="sm"
                     asChild
+                    className="w-full sm:w-auto"
                   >
                     <Link to={`/consent/${programId}`} target="_blank">
                       <Users className="h-4 w-4 mr-1" />
-                      동의서 페이지
+                      <span className="sm:hidden">동의서</span>
+                      <span className="hidden sm:inline">동의서 페이지</span>
                     </Link>
                   </Button>
                 </div>

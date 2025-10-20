@@ -149,7 +149,7 @@ const Home = () => {
                 <Badge
                   key={cat}
                   variant="outline"
-                  className="cursor-pointer px-3 sm:px-5 py-2 sm:py-3 text-sm sm:text-base md:text-lg font-medium hover:bg-primary hover:text-primary-foreground transition-all"
+                  className="cursor-pointer px-3 sm:px-5 py-2 sm:py-3 text-sm sm:text-base md:text-lg font-medium border-purple-300 text-purple-700 hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-all duration-300"
                   onClick={() => handleCategorySearch(cat)}
                 >
                   {cat}

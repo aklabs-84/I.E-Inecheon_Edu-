@@ -243,18 +243,18 @@ const AdminPrograms = () => {
       <Header />
       
       <main className="container mx-auto px-4 py-8">
-        {/* Page Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">내 프로그램 관리</h1>
-            <p className="text-muted-foreground">
+        {/* Page Header - 반응형 */}
+        <div className="mb-6 md:mb-8 space-y-4 md:space-y-0 md:flex md:items-start md:justify-between">
+          <div className="space-y-1 md:space-y-2">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">내 프로그램 관리</h1>
+            <p className="text-sm md:text-base text-muted-foreground">
               내가 작성한 교육 프로그램을 관리할 수 있습니다
             </p>
           </div>
           
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
-              <Button onClick={handleAddProgram} className="flex items-center gap-2">
+              <Button onClick={handleAddProgram} className="flex items-center gap-2 w-full md:w-auto">
                 <Plus className="h-4 w-4" />
                 프로그램 추가
               </Button>
@@ -274,53 +274,53 @@ const AdminPrograms = () => {
           </Dialog>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        {/* Stats - 반응형 그리드 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="pb-1 md:pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
                 내 프로그램
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{programs.length}</div>
+              <div className="text-lg md:text-2xl font-bold">{programs.length}</div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="pb-1 md:pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
                 모집중
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-lg md:text-2xl font-bold text-green-600">
                 {programs.filter(p => getStatus(p) === "모집중").length}
               </div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="pb-1 md:pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
                 진행중
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-lg md:text-2xl font-bold text-blue-600">
                 {programs.filter(p => getStatus(p) === "진행중").length}
               </div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="pb-1 md:pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
                 총 신청자
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-lg md:text-2xl font-bold text-purple-600">
                 {programs.reduce((total, p) => total + getCurrentApplicants(p.id), 0)}
               </div>
             </CardContent>
@@ -334,82 +334,102 @@ const AdminPrograms = () => {
             const currentApplicants = getCurrentApplicants(program.id);
             return (
               <Card key={program.id} className="overflow-hidden">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-semibold">{program.title}</h3>
-                        <Badge variant={getStatusVariant(status)}>
-                          {status}
-                        </Badge>
-                        <Badge variant="outline">{program.category || "미분류"}</Badge>
+                <CardContent className="p-4 md:p-6">
+                  {/* 모바일: 세로 배치, 데스크톱: 가로 배치 */}
+                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
+                    <div className="flex-1 space-y-3">
+                      {/* 제목과 배지 - 모바일에서 세로 정렬 */}
+                      <div className="space-y-2">
+                        <h3 className="text-lg md:text-xl font-semibold line-clamp-2">{program.title}</h3>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={getStatusVariant(status)} className="text-xs">
+                            {status}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">{program.category || "미분류"}</Badge>
+                        </div>
                       </div>
-                      <p className="text-muted-foreground mb-3">{program.description || "설명 없음"}</p>
                       
-                      <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                      {/* 설명 - 모바일에서 줄 제한 */}
+                      <p className="text-muted-foreground text-sm line-clamp-2 md:line-clamp-1">{program.description || "설명 없음"}</p>
+                      
+                      {/* 정보 - 모바일에서 세로 배치 */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          {program.region || "지역 미정"}
+                          <MapPin className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+                          <span className="truncate">{program.region || "지역 미정"}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {formatDate(program.start_at)} ~ {formatDate(program.end_at)}
+                          <Calendar className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+                          <span className="truncate text-xs md:text-sm">
+                            {formatDate(program.start_at)} ~ {formatDate(program.end_at)}
+                          </span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          {currentApplicants}/{program.capacity || 0}명
+                          <Users className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+                          <span className="whitespace-nowrap">{currentApplicants}/{program.capacity || 0}명</span>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    {/* 버튼 그룹 - 모바일에서 전체 폭, 데스크톱에서 우측 정렬 */}
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-stretch sm:items-center gap-2 lg:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => navigate(`/admin/programs/${program.id}/manage`)}
-                        className="text-blue-600 hover:text-blue-700"
+                        className="text-blue-600 hover:text-blue-700 text-xs md:text-sm whitespace-nowrap"
                       >
-                        <Users className="h-4 w-4" />
-                        신청자 관리
+                        <Users className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                        <span className="hidden sm:inline">신청자 관리</span>
+                        <span className="sm:hidden">관리</span>
                       </Button>
                       
-                      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditProgram(program)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                      </Dialog>
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>프로그램 삭제</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              "{program.title}" 프로그램을 삭제하시겠습니까? 
-                              이 작업은 되돌릴 수 없습니다.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>취소</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => handleDeleteProgram(program.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      <div className="flex gap-2">
+                        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditProgram(program)}
+                              className="flex-1 sm:flex-none"
                             >
-                              삭제
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                              <Edit className="h-3 w-3 md:h-4 md:w-4" />
+                              <span className="ml-1 sm:hidden">편집</span>
+                            </Button>
+                          </DialogTrigger>
+                        </Dialog>
+                        
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-destructive hover:text-destructive flex-1 sm:flex-none"
+                            >
+                              <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+                              <span className="ml-1 sm:hidden">삭제</span>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>프로그램 삭제</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                "{program.title}" 프로그램을 삭제하시겠습니까? 
+                                이 작업은 되돌릴 수 없습니다.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>취소</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleDeleteProgram(program.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                삭제
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   </div>
                   

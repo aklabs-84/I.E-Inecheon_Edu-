@@ -158,14 +158,14 @@ export default function SurveyManagement({ programId: propProgramId }: SurveyMan
         </p>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div className="text-sm text-muted-foreground">
           총 {surveys.length}개의 설문지
         </div>
         
         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               설문지 생성
             </Button>
@@ -244,14 +244,15 @@ export default function SurveyManagement({ programId: propProgramId }: SurveyMan
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="text-sm text-muted-foreground">
                   생성일: {new Date(survey.created_at).toLocaleDateString("ko-KR")}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     variant="outline"
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={() => {
                       setSelectedSurvey(survey);
                       setShowResults(true);
@@ -263,6 +264,7 @@ export default function SurveyManagement({ programId: propProgramId }: SurveyMan
                   <Button
                     variant="outline"
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={() => handleToggleActive(survey)}
                     disabled={updateSurvey.isPending}
                   >
@@ -272,6 +274,7 @@ export default function SurveyManagement({ programId: propProgramId }: SurveyMan
                   <Button
                     variant="outline"
                     size="sm"
+                    className="w-full sm:w-auto"
                     asChild
                   >
                     <Link to={`/survey/${survey.id}`} target="_blank">

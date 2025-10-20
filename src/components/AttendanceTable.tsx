@@ -429,12 +429,13 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
           </TabsList>
 
           <TabsContent value="daily" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+            {/* 모바일 친화적 헤더 레이아웃 */}
+            <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+              <div className="flex flex-col space-y-3 md:flex-row md:items-center md:space-y-0 md:gap-4">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="attendance-date">출석 날짜:</Label>
+                  <Label htmlFor="attendance-date" className="whitespace-nowrap">출석 날짜:</Label>
                   <Select value={selectedDate} onValueChange={setSelectedDate}>
-                    <SelectTrigger className="w-auto min-w-[200px]">
+                    <SelectTrigger className="w-full min-w-[200px] md:w-auto">
                       <SelectValue placeholder="날짜를 선택하세요" />
                     </SelectTrigger>
                     <SelectContent>
@@ -446,7 +447,7 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-md">
                   총 {approvedApplicants.length}명 등록
                 </div>
               </div>
@@ -456,7 +457,7 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
                 disabled={isGeneratingExcel || approvedApplicants.length === 0}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 w-full md:w-auto"
               >
                 <Download className="h-4 w-4" />
                 {isGeneratingExcel ? "엑셀 생성중..." : "일일 출석부 엑셀"}
@@ -482,19 +483,21 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
               {format(new Date(selectedDate), "yyyy년 M월 d일 EEEE", { locale: ko })} 출석현황
             </div>
             
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">번호</TableHead>
-                  <TableHead>이름</TableHead>
-                  <TableHead>닉네임</TableHead>
-                  <TableHead>지역</TableHead>
-                  <TableHead className="w-24">결석횟수</TableHead>
-                  <TableHead className="w-32">출석상태</TableHead>
-                  <TableHead className="w-56">액션</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            {/* Desktop Table View */}
+            <div className="hidden lg:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-16">번호</TableHead>
+                    <TableHead>이름</TableHead>
+                    <TableHead>닉네임</TableHead>
+                    <TableHead>지역</TableHead>
+                    <TableHead className="w-24">결석횟수</TableHead>
+                    <TableHead className="w-32">출석상태</TableHead>
+                    <TableHead className="w-56">액션</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {approvedApplicants.map((application, index) => {
                   const profile = application.profiles;
                   const attendanceStatus = getAttendanceStatus(application.user_id);
@@ -638,14 +641,180 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
                     </TableRow>
                   );
                 })}
-              </TableBody>
-            </Table>
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-3">
+              {approvedApplicants.map((application, index) => {
+                const profile = application.profiles;
+                const attendanceStatus = getAttendanceStatus(application.user_id);
+                const absentCount = getUserAbsentCount(application.user_id);
+                
+                return (
+                  <Card key={application.id} className="p-4">
+                    <div className="space-y-3">
+                      {/* Header */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                            {index + 1}
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="font-medium">{profile?.name || "이름 없음"}</h4>
+                              {isUserBlacklisted(application.user_id) && (
+                                <Badge variant="destructive" className="text-xs">
+                                  <Ban className="h-3 w-3 mr-1" />
+                                  블랙리스트
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              @{profile?.nickname || "-"} · {profile?.region || "-"}
+                            </p>
+                          </div>
+                        </div>
+                        {getStatusBadge(attendanceStatus)}
+                      </div>
+
+                      {/* Absence Count */}
+                      <div className="flex items-center justify-between py-2 px-3 bg-muted rounded-lg">
+                        <span className="text-sm font-medium">결석 횟수</span>
+                        <div className="flex items-center gap-1">
+                          <span className={absentCount >= 3 ? "text-red-600 font-bold" : "font-medium"}>
+                            {absentCount}회
+                          </span>
+                          {absentCount >= 3 && (
+                            <AlertTriangle className="h-4 w-4 text-red-500" />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex flex-wrap gap-2">
+                        {attendanceStatus !== "present" && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => setSignatureModal({
+                              isOpen: true,
+                              userId: application.user_id,
+                              userName: profile?.name || "참여자"
+                            })}
+                            className="flex-1 sm:flex-none"
+                          >
+                            출석
+                          </Button>
+                        )}
+                        {attendanceStatus !== "late" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleMarkLate(application.user_id)}
+                            className="flex-1 sm:flex-none"
+                          >
+                            지각
+                          </Button>
+                        )}
+                        {attendanceStatus !== "absent" && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleMarkAbsent(application.user_id)}
+                            className="flex-1 sm:flex-none"
+                          >
+                            결석
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Blacklist actions */}
+                      <div className="pt-2 border-t flex flex-wrap gap-2">
+                        {absentCount >= 3 && !isUserBlacklisted(application.user_id) && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-red-500 text-red-600 hover:bg-red-50 flex-1 sm:flex-none"
+                              >
+                                <Ban className="h-3 w-3 mr-1" />
+                                블랙리스트 추가
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>블랙리스트 처리</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  <strong>{profile?.name}</strong>님을 블랙리스트에 추가하시겠습니까?
+                                  <br /><br />
+                                  현재 결석 횟수: <strong className="text-red-600">{absentCount}회</strong>
+                                  <br />
+                                  블랙리스트 기간: <strong>3개월</strong>
+                                  <br /><br />
+                                  이 작업은 되돌릴 수 있으며, 해당 사용자는 3개월 동안 프로그램 신청이 제한됩니다.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>취소</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleBlacklistUser(application.user_id, profile?.name || "참여자")}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  블랙리스트 추가
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                        {isUserBlacklisted(application.user_id) && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-green-500 text-green-600 hover:bg-green-50 flex-1 sm:flex-none"
+                              >
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                블랙리스트 해제
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>블랙리스트 해제</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  <strong>{profile?.name}</strong>님의 블랙리스트를 해제하시겠습니까?
+                                  <br /><br />
+                                  해제 후 해당 사용자는 다시 프로그램에 신청할 수 있습니다.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>취소</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleRemoveFromBlacklist(application.user_id, profile?.name || "참여자")}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  블랙리스트 해제
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
         )}
           </TabsContent>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
+            {/* 모바일 친화적 헤더 레이아웃 */}
+            <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0 mb-4">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
                 <h3 className="text-lg font-semibold">전체 출석 현황</h3>
@@ -656,7 +825,7 @@ export const AttendanceTable = ({ programId, programTitle }: AttendanceTableProp
                 disabled={isGeneratingExcel || approvedApplicants.length === 0}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 w-full md:w-auto"
               >
                 <Download className="h-4 w-4" />
                 {isGeneratingExcel ? "엑셀 생성중..." : "전체 현황 엑셀"}

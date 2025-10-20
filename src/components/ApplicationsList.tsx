@@ -169,19 +169,21 @@ const ApplicationsList = ({ programId, programTitle }: ApplicationsListProps) =>
               <p>아직 신청자가 없습니다</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>신청자</TableHead>
-                    <TableHead>연락처</TableHead>
-                    <TableHead>지역</TableHead>
-                    <TableHead>신청일시</TableHead>
-                    <TableHead>상태</TableHead>
-                    <TableHead className="text-right">관리</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            <>
+              {/* Desktop/Tablet Table View */}
+              <div className="hidden lg:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>신청자</TableHead>
+                      <TableHead>연락처</TableHead>
+                      <TableHead>지역</TableHead>
+                      <TableHead>신청일시</TableHead>
+                      <TableHead>상태</TableHead>
+                      <TableHead className="text-right">관리</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                   {applications.map((application: any) => (
                     <TableRow key={application.id}>
                       <TableCell>
@@ -350,9 +352,166 @@ const ApplicationsList = ({ programId, programTitle }: ApplicationsListProps) =>
                       </TableCell>
                     </TableRow>
                   ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="lg:hidden space-y-3">
+                {applications.map((application: any) => (
+                  <Card key={application.id} className="p-4">
+                    <div className="space-y-3">
+                      {/* Header with name and status */}
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-medium text-base">
+                              {application.profiles?.name || '이름 없음'}
+                            </h4>
+                            {isUserBlacklisted(application.user_id) && (
+                              <Badge variant="destructive" className="text-xs">
+                                <Ban className="h-3 w-3 mr-1" />
+                                블랙리스트
+                              </Badge>
+                            )}
+                          </div>
+                          {application.profiles?.nickname && (
+                            <p className="text-sm text-muted-foreground">@{application.profiles.nickname}</p>
+                          )}
+                          {(application.profiles?.age_group || application.profiles?.gender) && (
+                            <p className="text-xs text-muted-foreground">
+                              {application.profiles?.age_group && `${application.profiles.age_group}`}
+                              {application.profiles?.gender && ` · ${application.profiles.gender}`}
+                            </p>
+                          )}
+                        </div>
+                        <Badge variant={getStatusVariant(application.status)} className="flex-shrink-0">
+                          {getStatusText(application.status)}
+                        </Badge>
+                      </div>
+
+                      {/* Contact and region info */}
+                      <div className="grid grid-cols-1 gap-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="truncate">{application.profiles?.email || '-'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span>{application.profiles?.region || '-'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span>{formatDate(application.created_at)}</span>
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="pt-2 border-t">
+                        <div className="flex flex-wrap gap-2">
+                          {application.status === 'pending' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleStatusChange(application.id, 'approved')}
+                                disabled={updateStatus.isPending}
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50 flex-1 sm:flex-none"
+                              >
+                                <Check className="h-3 w-3 mr-1" />
+                                승인
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleStatusChange(application.id, 'cancelled')}
+                                disabled={updateStatus.isPending}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-1 sm:flex-none"
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                거절
+                              </Button>
+                            </>
+                          )}
+
+                          {application.status === 'approved' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleStatusChange(application.id, 'pending')}
+                                disabled={updateStatus.isPending}
+                                className="text-xs px-2 py-1"
+                              >
+                                대기중
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleStatusChange(application.id, 'cancelled')}
+                                disabled={updateStatus.isPending}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="h-3 w-3" />
+                                거절
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleStatusChange(application.id, 'delete')}
+                                disabled={deleteApplication.isPending}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                삭제
+                              </Button>
+                            </>
+                          )}
+
+                          {application.status === 'cancelled' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleStatusChange(application.id, 'pending')}
+                                disabled={updateStatus.isPending}
+                                className="text-xs px-2 py-1"
+                              >
+                                대기중
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleStatusChange(application.id, 'delete')}
+                                disabled={deleteApplication.isPending}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                삭제
+                              </Button>
+                            </>
+                          )}
+
+                          {/* 블랙리스트 해제 버튼 */}
+                          {isUserBlacklisted(application.user_id) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleRemoveFromBlacklist(application.user_id, application.profiles?.name || '사용자')}
+                              disabled={removeFromBlacklist.isPending}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50 text-xs px-2 py-1"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              블랙리스트 해제
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
