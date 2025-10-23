@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import Survey from "./pages/Survey";
 import SurveyManagement from "./pages/SurveyManagement";
 import { ConsentPage } from "./pages/ConsentPage";
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/programs" element={<Programs />} />
