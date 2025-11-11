@@ -26,6 +26,7 @@ const Auth = () => {
   const [isValidating, setIsValidating] = useState(false);
   const [showPrivacyAgreement, setShowPrivacyAgreement] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -73,28 +74,48 @@ const Auth = () => {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (mode === "login") {
-      const { error } = await signIn(email, password);
-      if (error) {
-        toast.error(error.message);
+    // 중복 제출 방지
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    
+    try {
+      if (mode === "login") {
+        const { error } = await signIn(email, password);
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success("로그인 되었습니다");
+          navigate("/admin/programs");
+        }
       } else {
-        toast.success("로그인 되었습니다");
-        navigate("/admin/programs");
+        // 회원가입 시 비밀번호 검증
+        if (!passwordValidation?.isValid) {
+          toast.error("비밀번호 요구사항을 만족하지 않습니다.");
+          return;
+        }
+        
+        const { error } = await signUp(email, password, { name, nickname });
+        
+        // Rate limit 에러 발생 시 재시도 또는 안내
+        if (error?.message?.includes("rate limit") || error?.message?.includes("rate_limit")) {
+          toast.error("잠시 후 다시 시도해주세요. (30초 대기)");
+          // 선택: 30초 후 자동 재시도
+          setTimeout(() => {
+            toast.info("다시 시도해보세요");
+          }, 30000);
+          return;
+        }
+        
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success("회원가입이 완료되었습니다!");
+          // 바로 로그인 또는 온보딩으로 이동
+          navigate("/onboarding");
+        }
       }
-    } else {
-      // 회원가입 시 비밀번호 검증
-      if (!passwordValidation?.isValid) {
-        toast.error("비밀번호 요구사항을 만족하지 않습니다.");
-        return;
-      }
-      
-      const { error } = await signUp(email, password, { name, nickname });
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success("회원가입 링크가 이메일로 전송되었습니다. 이메일 확인 후 온보딩을 완료해주세요.");
-        // 회원가입 성공 후 온보딩 페이지로 리디렉션될 수 있도록 준비
-      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -302,9 +323,9 @@ const Auth = () => {
                     <Button 
                       type="submit" 
                       className="w-full" 
-                      disabled={loading}
+                      disabled={loading || isSubmitting}
                     >
-                      {loading ? "처리 중..." : "로그인"}
+                      {loading || isSubmitting ? "처리 중..." : "로그인"}
                     </Button>
                     <Button 
                       type="button"
@@ -333,9 +354,9 @@ const Auth = () => {
                     <Button 
                       type="submit" 
                       className="w-full" 
-                      disabled={loading || (!passwordValidation?.isValid || isValidating)}
+                      disabled={loading || isSubmitting || (!passwordValidation?.isValid || isValidating)}
                     >
-                      {loading ? "처리 중..." : "회원가입"}
+                      {loading || isSubmitting ? "처리 중..." : "회원가입"}
                     </Button>
                     <Button 
                       type="button"
