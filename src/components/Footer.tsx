@@ -9,9 +9,7 @@ const Footer = () => {
         <div className="grid md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">인</span>
-              </div>
+              <img src="/favicon.png" alt="인천에듀" className="w-8 h-8 object-contain rounded-lg" />
               <span className="font-bold text-lg">인천에듀</span>
             </div>
             <p className="text-sm text-muted-foreground">
