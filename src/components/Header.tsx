@@ -615,8 +615,8 @@ const Header = () => {
                 <Menu className="h-4 w-4" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80 overflow-y-auto max-h-screen">
-              <SheetHeader className="sticky top-0 bg-background z-10 pb-4">
+            <SheetContent side="right" className="w-[90vw] sm:w-80 overflow-y-auto max-h-screen pr-12">
+              <SheetHeader className="sticky top-0 bg-background z-10 pb-4 pr-2">
                 <SheetTitle>메뉴</SheetTitle>
               </SheetHeader>
               
