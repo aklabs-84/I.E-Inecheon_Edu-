@@ -376,7 +376,7 @@ const Header = () => {
             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">인</span>
             </div>
-            <span className="hidden font-bold sm:inline-block text-lg">인천에듀</span>
+            <span className="font-bold inline-block text-lg">인천에듀</span>
           </div>
         </div>
 
