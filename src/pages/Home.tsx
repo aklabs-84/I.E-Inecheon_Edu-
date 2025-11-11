@@ -102,7 +102,7 @@ const Home = () => {
             <div className="flex items-center justify-center space-x-2 mb-4">
               <MapPin className="w-5 h-5 text-primary" />
               <Badge variant="outline" className="text-primary border-primary">
-                인천광역시 공식 교육포털
+                인천광역시 동구 교육포털
               </Badge>
             </div>
 

@@ -15,7 +15,7 @@ const Footer = () => {
               <span className="font-bold text-lg">인천에듀</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              인천광역시 교육청과 함께하는<br />
+              인천 동구청과 함께하는<br />
               통합 교육 정보 플랫폼
             </p>
           </div>
@@ -38,13 +38,14 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4">연락처</h4>
             <p className="text-sm text-muted-foreground">
-              인천광역시 동구 화도진로 154, 2층<br />
+              인천광역시 동구 화도진로 154,<br />
+              2층 & 지하드론교육장<br />
               Tel: 0507-1335-0298
             </p>
           </div>
         </div>
         <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-          © 2024 인천광역시교육청. All rights reserved.
+          © 2025 인천동구청 & (주)마음길
         </div>
       </div>
     </footer>
