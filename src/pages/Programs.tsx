@@ -241,7 +241,6 @@ const Programs = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            
           </div>
 
           {/* Filters */}
