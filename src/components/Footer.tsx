@@ -9,7 +9,7 @@ const Footer = () => {
         <div className="grid md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <img src="/favicon.png" alt="인천에듀" className="w-8 h-8 object-contain rounded-lg" />
+              <img src="/favicon-32x32.png" alt="인천에듀" className="w-8 h-8 object-contain rounded-lg" />
               <span className="font-bold text-lg">인천에듀</span>
             </div>
             <p className="text-sm text-muted-foreground">
