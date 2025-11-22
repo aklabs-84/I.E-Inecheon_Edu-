@@ -373,7 +373,7 @@ const Header = () => {
         {/* Logo */}
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <img src="/favicon.png" alt="인천에듀" className="w-8 h-8 object-contain rounded-lg" />
+            <img src="/favicon-32x32.png" alt="인천에듀" className="w-8 h-8 object-contain rounded-lg" />
             <span className="font-bold inline-block text-lg">인천에듀</span>
           </div>
         </div>
