@@ -242,11 +242,12 @@ const Programs = () => {
               />
             </div>
             
-            {/* Filter Button */}
+            {/* Filter Button 
             <Button variant="outline" size="default" className="flex items-center gap-2">
               <Filter className="h-4 w-4" />
               필터
             </Button>
+            */}
           </div>
 
           {/* Filters */}
