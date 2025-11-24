@@ -113,10 +113,30 @@ const Home = () => {
               한 곳에서 만나보세요
             </h1>
 
+            {/* 
             <p className="text-base sm:text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
               인천 지역 교육 프로그램부터 학부모 커뮤니티까지,<br />
               우리 아이들의 더 나은 교육을 위한 통합 플랫폼입니다.
             </p>
+            */}
+
+
+            <p className="text-base sm:text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
+              <span className="hidden sm:inline">
+                인천 지역 교육 프로그램부터 학부모 커뮤니티까지,
+                <br />
+                우리 아이들의 더 나은 교육을 위한 통합 플랫폼입니다.
+              </span>
+              <span className="sm:hidden block">
+                인천 지역 교육 프로그램부터<br />
+                학부모 커뮤니티까지<br />
+                우리 아이들의 더 나은 교육을<br />
+                위한 통합 플랫폼입니다.
+             </span>
+            </p>
+
+
+
 
             {/* Search Bar */}
             <div className="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto justify-center items-center">
